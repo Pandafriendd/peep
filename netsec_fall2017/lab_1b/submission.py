@@ -2,7 +2,7 @@ import unittest
 
 from playground.network.packet.encoders.PacketEncodingError import PacketEncodingError
 from playground.network.packet import PacketType
-from mypackets import RequestMenu, Menu, Order, Result
+from mypackets import RequestMenu, Menu, Order, Result, ListTest
 
 
 class MyPacketsTestCase(unittest.TestCase):
@@ -68,6 +68,13 @@ class MyPacketsTestCase(unittest.TestCase):
                     self.assertEqual(packet, order)
                 else:
                     self.assertEqual(packet, result)
+
+    def test_listTest(self):
+        lt = ListTest()
+        self.initPacket(lt, [1, [1, 2, 3], 'abc'])
+        lt_ser = lt.__serialize__()
+        lt_deser = lt.Deserialize(lt_ser)
+        self.assertEqual(list(lt.ls), list(lt_deser.ls))
 
     @staticmethod
     def initPacket(packet, attr_list):
