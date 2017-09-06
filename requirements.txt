@@ -1,3 +1,0 @@
-lockfile==0.12.2
-playground==0.3.0
-python-daemon-3K==1.5.8
