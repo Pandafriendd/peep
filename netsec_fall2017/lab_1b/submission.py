@@ -1,8 +1,8 @@
 import unittest
 
-from playground.network.packet.encoders.PacketEncodingError import PacketEncodingError
+from ..mypackets import RequestMenu, Menu, Order, Result, ListTest
 from playground.network.packet import PacketType
-from mypackets import RequestMenu, Menu, Order, Result, ListTest
+from playground.network.packet.encoders.PacketEncodingError import PacketEncodingError
 
 
 class MyPacketsTestCase(unittest.TestCase):
