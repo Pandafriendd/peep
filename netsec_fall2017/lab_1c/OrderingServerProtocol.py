@@ -18,7 +18,7 @@ class OrderingServerProtocol(asyncio.Protocol):
         pass
 
     def data_received(self, data):
-        origin_data = None
+        data_after_deserialization = None
         deserializer = PacketType.Deserializer()
 
         while len(data) > 0:
@@ -26,17 +26,17 @@ class OrderingServerProtocol(asyncio.Protocol):
             deserializer.update(chunk)
             for packet in deserializer.nextPackets():
                 print('Server received {!r}'.format(packet))
-                origin_data = packet
-                self.received_message.append(origin_data)
+                data_after_deserialization = packet
+                self.received_message.append(data_after_deserialization)
 
-        if isinstance(origin_data, RequestMenu):
+        if isinstance(data_after_deserialization, RequestMenu):
             print('Server receive a RequestMenu message')
             menu = self.generate_packet_of_menu()
             self.transport.write(menu.__serialize__())
 
-        elif isinstance(origin_data, Order):
+        elif isinstance(data_after_deserialization, Order):
             print('Server receive an Order message')
-            result = self.generate_packet_of_result(origin_data.ID, origin_data.setMeal)
+            result = self.generate_packet_of_result(data_after_deserialization.ID, data_after_deserialization.setMeal)
             self.transport.write(result.__serialize__())
 
         else:
