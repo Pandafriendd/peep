@@ -1,28 +1,54 @@
 import asyncio
+import random
 
 from playground.network.packet import PacketType
-# from ..mypackets import RequestMenu, Menu, Order, Result
+
+from ..mypackets import RequestMenu, Menu, Order, Result
+from ..mypackets import init_packet
 
 
 class OrderingClientProtocol(asyncio.Protocol):
 
-    def __init__(self, packet, loop):
-        if isinstance(packet, PacketType):
-            self.transport = None
-            self.packet = packet
-            self.loop = loop
-        else:
-            raise ValueError('This is not a packet')
+    def __init__(self):
+        self.transport = None
+        self.received_message = []
 
     def connection_made(self, transport):
         self.transport = transport
-        transport.write(self.packet.__serialize__())
-        pass
+        rm = RequestMenu()
+        self.transport.write(rm.__serialize__())
 
     def data_received(self, data):
-        pass
+        data_after_deserialization = None
+        deserializer = PacketType.Deserializer()
+
+        while len(data) > 0:
+            chunk, data = data[:8], data[8:]
+            deserializer.update(chunk)
+            for packet in deserializer.nextPackets():
+                print('Client received {!r}'.format(packet))
+                data_after_deserialization = packet
+                self.received_message.append(data_after_deserialization)
+
+        if isinstance(data_after_deserialization, Menu):
+            set_meals = [
+                data_after_deserialization.setMealA,
+                data_after_deserialization.setMealB,
+                data_after_deserialization.setMealC
+            ]
+            order = self.generate_packet_of_order(data_after_deserialization.ID, set_meals)
+            self.transport.write(order.__serialize__())
+
+        elif isinstance(data_after_deserialization, Result):
+            pass
 
     def connection_lost(self, exc):
         print('over')
         self.transport = None
         pass
+
+    @staticmethod
+    def generate_packet_of_order(packet_id, set_meals):
+        order = Order()
+        init_packet(order, [packet_id, set_meals[random.randint(0, 2)]])
+        return order
