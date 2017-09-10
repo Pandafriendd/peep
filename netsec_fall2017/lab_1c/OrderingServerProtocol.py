@@ -25,22 +25,23 @@ class OrderingServerProtocol(asyncio.Protocol):
             chunk, data = data[:8], data[8:]
             deserializer.update(chunk)
             for packet in deserializer.nextPackets():
-                print('Server received {!r}'.format(packet))
                 data_after_deserialization = packet
                 self.received_message.append(data_after_deserialization)
 
         if isinstance(data_after_deserialization, RequestMenu):
-            print('Server receive a RequestMenu message')
+            print('Server receives a RequestMenu message')
             menu = self.generate_packet_of_menu()
+            print('Server sends a Menu message')
             self.transport.write(menu.__serialize__())
 
         elif isinstance(data_after_deserialization, Order):
             print('Server receive an Order message')
             result = self.generate_packet_of_result(data_after_deserialization.ID, data_after_deserialization.setMeal)
+            print('Server sends a Result message')
             self.transport.write(result.__serialize__())
 
         else:
-            raise ValueError('Receive incorrect packet')
+            raise TypeError('Receive incorrect packet')
 
     def connection_lost(self, exc):
         self.transport = None
