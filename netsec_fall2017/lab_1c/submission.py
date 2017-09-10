@@ -12,7 +12,7 @@ from .OrderingClientProtocol import OrderingClientProtocol as ClientProtocol
 """
     You should NOT run the code directly by `python submission.py`.
     You should go to the top level of file dir, and use `python -m netsec_fall2017.lab_1c.submission`.
-    There is a .sh script file in top level dir, you could also use `./start.sh` to run the code.
+    There is a .sh script file in top level dir, you could also use `./start.sh 1c` to run the code.
 """
 
 
