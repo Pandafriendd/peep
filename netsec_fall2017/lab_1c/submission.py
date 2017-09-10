@@ -1,4 +1,3 @@
-import asyncio
 import unittest
 
 from playground.network.testing import MockTransportToProtocol
