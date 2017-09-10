@@ -4,6 +4,11 @@ from ..mypackets import RequestMenu, Menu, Order, Result, ListTest
 from playground.network.packet import PacketType
 from playground.network.packet.encoders.PacketEncodingError import PacketEncodingError
 
+"""
+    You should NOT run the code directly by `python submission.py`.
+    You should go to the top level of file dir, and use `python -m netsec_fall2017.lab_1b.submission`.
+    There is a .sh script file in top level dir, you could also use `./start.sh 1b` to run the code.
+"""
 
 class MyPacketsTestCase(unittest.TestCase):
 
