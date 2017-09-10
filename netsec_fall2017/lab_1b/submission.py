@@ -10,6 +10,7 @@ from playground.network.packet.encoders.PacketEncodingError import PacketEncodin
     There is a .sh script file in top level dir, you could also use `./start.sh 1b` to run the code.
 """
 
+
 class MyPacketsTestCase(unittest.TestCase):
 
     def test_packetOfRequestMenu(self):
