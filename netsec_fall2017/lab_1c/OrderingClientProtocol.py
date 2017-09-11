@@ -45,7 +45,8 @@ class OrderingClientProtocol(asyncio.Protocol):
 
         elif isinstance(data_after_deserialization, Result):
             if not self.for_test:
-                self.transport.close()
+                if len(self.received_message) == 2:
+                    self.transport.close()
         else:
             raise TypeError('Receive incorrect packet')
 
