@@ -22,7 +22,6 @@ class MockTransportTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print('================================================')
         cls.server_protocol = ServerProtocol()
         cls.client_protocol = ClientProtocol()
 
@@ -31,54 +30,53 @@ class MockTransportTestCase(unittest.TestCase):
 
         cls.server_protocol.connection_made(tc)
         cls.client_protocol.connection_made(ts)
-        print('================================================')
 
-    def test_mock_transport_valueEqual_RequestMenu(self):
+    def test_1_valueEqual_RequestMenu(self):
         request_menu = RequestMenu()
+        MockTransportTestCase.client_protocol.send_request_menu(request_menu)
         self.assertEqual(MockTransportTestCase.server_protocol.received_message[0], request_menu)
 
-    def test_mock_transport_valueEqual_Menu(self):
+    def test_2_valueEqual_Menu(self):
         menu = Menu()
         init_packet(menu, [0, 'A', 'B', 'C'])
         self.assertEqual(MockTransportTestCase.client_protocol.received_message[0], menu)
 
-    def test_mock_transport_valueEqual_Order(self):
-        order1 = Order()
-        order2 = Order()
-        order3 = Order()
-        init_packet(order1, [0, 'A'])
-        init_packet(order2, [0, 'B'])
-        init_packet(order3, [0, 'C'])
-        self.assertIn(MockTransportTestCase.server_protocol.received_message[1], [order1, order2, order3])
+    def test_3_valueEqual_Order(self):
+        menu_id = MockTransportTestCase.client_protocol.received_message[0].ID
+        order = Order()
+        init_packet(order, [menu_id, 'A'])
+        MockTransportTestCase.client_protocol.send_order(order)
+        self.assertEqual(MockTransportTestCase.server_protocol.received_message[1], order)
 
-    def test_mock_transport_valueEqual_Result(self):
-        menu_dict = {
-            'A': 5,
-            'B': 10,
-            'C': 15
-        }
+    def test_4_valueEqual_Result(self):
+        menu_id = MockTransportTestCase.client_protocol.received_message[0].ID
         result = Result()
-        init_packet(result, [0, menu_dict[MockTransportTestCase.server_protocol.received_message[1].setMeal]])
+        init_packet(result, [menu_id, 5])
         self.assertEqual(MockTransportTestCase.client_protocol.received_message[1], result)
 
-    def test_mock_transport_error_ClientInit(self):
-        sp = ServerProtocol()
-        cp = ClientProtocol()
+    def test_5_valueEqual_state_whenProcessEnds(self):
+        self.assertEqual(MockTransportTestCase.server_protocol.receiving_state, -1)
+        self.assertEqual(MockTransportTestCase.client_protocol.receiving_state, -1)
+        print('============= Test cases above are normal process when client interacts with server =============')
+        print('============= Test cases below are abnormal process when client interacts with server =============')
 
-        ts = MockTransportToProtocol(sp)
-        tc = MockTransportToProtocol(cp)
+    def test_6_exception_sendPacketAtWrongState(self):
+        rm = RequestMenu()
+        with self.assertRaises(ValueError):
+            MockTransportTestCase.client_protocol.send_request_menu(rm)
 
-        sp.connection_made(tc)
+    def test_7_exception_returnPacketAtWrongState(self):
+        MockTransportTestCase.server_protocol.receiving_state = 0
+        MockTransportTestCase.server_protocol.received_message = []
+        with self.assertRaises(ValueError):
+            rm = RequestMenu()
+            MockTransportTestCase.server_protocol.data_received(rm.__serialize__())
+
+    def test_8_exception_sendingInValidPacket(self):
+        MockTransportTestCase.client_protocol.received_message = []
+        MockTransportTestCase.client_protocol.receiving_state = 0
         with self.assertRaises(TypeError):
-            cp.connection_made(ts, 'Test')
-
-    def test_mock_transport_error_ServerReceive(self):
-        with self.assertRaises(TypeError):
-            MockTransportTestCase.server_protocol.data_received('Test')
-
-    def test_mock_transport_error_ClientReceive(self):
-        with self.assertRaises(TypeError):
-            MockTransportTestCase.client_protocol.data_received('Test')
+            MockTransportTestCase.client_protocol.send_request_menu('Test')
 
 
 if __name__ == '__main__':
