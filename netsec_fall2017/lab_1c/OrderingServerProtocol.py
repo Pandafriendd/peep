@@ -7,15 +7,16 @@ from ..mypackets import init_packet
 
 
 class OrderingServerProtocol(asyncio.Protocol):
-    def __init__(self):
+    order_number = 0
+
+    def __init__(self, menu_dict={'A': 5, 'B': 10, 'C': 15}):
         self.transport = None
-        self.order_number = 0
-        self.menu_dict = self.get_menu_val()
+        self.menu_dict = menu_dict
+        self.receiving_state = 0
         self.received_message = []
 
     def connection_made(self, transport):
         self.transport = transport
-        pass
 
     def data_received(self, data):
         data_after_deserialization = None
@@ -29,17 +30,24 @@ class OrderingServerProtocol(asyncio.Protocol):
                 self.received_message.append(data_after_deserialization)
 
         if isinstance(data_after_deserialization, RequestMenu):
-            print('Server receives a RequestMenu message')
-            menu = self.generate_packet_of_menu()
-            print('Server sends a Menu message')
-            self.transport.write(menu.__serialize__())
+            if self.receiving_state == 0:
+                print('Server receives a request menu message')
+                menu = self.generate_packet_of_menu()
+                print('Server sends a menu message')
+                self.transport.write(menu.__serialize__())
+                self.receiving_state += 1
+            else:
+                raise ValueError('Wrong state when server receives request menu message')
 
         elif isinstance(data_after_deserialization, Order):
-            print('Server receive an Order message')
-            result = self.generate_packet_of_result(data_after_deserialization.ID, data_after_deserialization.setMeal)
-            print('Server sends a Result message')
-            self.transport.write(result.__serialize__())
-
+            if self.receiving_state == 1:
+                print('Server receive an Order message')
+                result = self.generate_packet_of_result(data_after_deserialization.ID, data_after_deserialization.setMeal)
+                print('Server sends a Result message')
+                self.transport.write(result.__serialize__())
+                self.receiving_state = -1
+            else:
+                raise ValueError('Wrong state when server receives order message')
         else:
             raise TypeError('Receive incorrect packet')
 
@@ -49,8 +57,8 @@ class OrderingServerProtocol(asyncio.Protocol):
     def generate_packet_of_menu(self):
         menu = Menu()
         set_meals = [k for k in self.menu_dict.keys()]
-        init_packet(menu, [self.order_number] + set_meals)
-        self.order_number += 1
+        init_packet(menu, [OrderingServerProtocol.order_number] + set_meals)
+        OrderingServerProtocol.order_number += 1
         return menu
 
     def generate_packet_of_result(self, packet_id, set_meal):
@@ -59,10 +67,3 @@ class OrderingServerProtocol(asyncio.Protocol):
         init_packet(result, [packet_id, price])
         return result
 
-    @staticmethod
-    def get_menu_val():
-        return {
-            'A': 5,
-            'B': 10,
-            'C': 15
-        }
