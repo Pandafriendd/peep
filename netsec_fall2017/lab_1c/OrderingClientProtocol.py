@@ -1,25 +1,19 @@
 import asyncio
-import random
 
 from playground.network.packet import PacketType
-
 from ..mypackets import RequestMenu, Menu, Order, Result
-from ..mypackets import init_packet
 
 
 class OrderingClientProtocol(asyncio.Protocol):
 
     def __init__(self, for_test=True):
         self.transport = None
+        self.receiving_state = 0
         self.received_message = []
         self.for_test = for_test
 
-    def connection_made(self, transport, rm=RequestMenu()):
-        if not isinstance(rm, RequestMenu):
-            raise TypeError('Init with an incorrect packet')
+    def connection_made(self, transport):
         self.transport = transport
-        print('Client sends a RequestMenu message')
-        self.transport.write(rm.__serialize__())
 
     def data_received(self, data):
         data_after_deserialization = None
@@ -33,20 +27,21 @@ class OrderingClientProtocol(asyncio.Protocol):
                 self.received_message.append(data_after_deserialization)
 
         if isinstance(data_after_deserialization, Menu):
-            print('Client receives a Menu message')
-            set_meals = [
-                data_after_deserialization.setMealA,
-                data_after_deserialization.setMealB,
-                data_after_deserialization.setMealC
-            ]
-            order = self.generate_packet_of_order(data_after_deserialization.ID, set_meals)
-            print('Clients sends an Order message')
-            self.transport.write(order.__serialize__())
+            if self.receiving_state == 0:
+                print('Client receives a menu message')
+                self.receiving_state += 1
+            else:
+                raise ValueError('Wrong state when client receives a menu message')
 
         elif isinstance(data_after_deserialization, Result):
-            if not self.for_test:
-                if len(self.received_message) == 2:
-                    self.transport.close()
+            if self.receiving_state == 1:
+                print('Client receives a result message')
+                self.receiving_state = -1
+                if not self.for_test:
+                    if len(self.received_message) == 2:
+                        self.transport.close()
+            else:
+                raise ValueError('Wrong state when client receives a result message')
         else:
             raise TypeError('Receive incorrect packet')
 
@@ -54,8 +49,16 @@ class OrderingClientProtocol(asyncio.Protocol):
         print('over')
         self.transport = None
 
-    @staticmethod
-    def generate_packet_of_order(packet_id, set_meals):
-        order = Order()
-        init_packet(order, [packet_id, set_meals[random.randint(0, 2)]])
-        return order
+    def send_request_menu(self, packet):
+        if isinstance(packet, RequestMenu):
+            print('Client sends a request menu message')
+            self.transport.write(packet.__serialize__())
+        else:
+            raise TypeError('Send a packet which is not a RequestMenu packet')
+
+    def send_order(self, packet):
+        if isinstance(packet, Order):
+            print('Client sends a order message')
+            self.transport.write(packet.__serialize__())
+        else:
+            raise TypeError('Send a packet which is not a Order packet')
