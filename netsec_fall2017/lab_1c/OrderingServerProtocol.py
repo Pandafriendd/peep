@@ -7,7 +7,7 @@ from ..mypackets import init_packet
 
 
 class OrderingServerProtocol(asyncio.Protocol):
-    order_number = 0
+    ORDER_NUMBER = 0
 
     def __init__(self, menu_dict={'A': 5, 'B': 10, 'C': 15}):
         self.transport = None
@@ -31,7 +31,7 @@ class OrderingServerProtocol(asyncio.Protocol):
 
         if isinstance(data_after_deserialization, RequestMenu):
             if self.receiving_state == 0:
-                print('Server receives a request menu message')
+                print('Server receives a request menu message with state %s' % self.receiving_state)
                 menu = self.generate_packet_of_menu()
                 print('Server sends a menu message')
                 self.transport.write(menu.__serialize__())
@@ -57,8 +57,8 @@ class OrderingServerProtocol(asyncio.Protocol):
     def generate_packet_of_menu(self):
         menu = Menu()
         set_meals = [k for k in self.menu_dict.keys()]
-        init_packet(menu, [OrderingServerProtocol.order_number] + set_meals)
-        OrderingServerProtocol.order_number += 1
+        init_packet(menu, [OrderingServerProtocol.ORDER_NUMBER] + set_meals)
+        OrderingServerProtocol.ORDER_NUMBER += 1
         return menu
 
     def generate_packet_of_result(self, packet_id, set_meal):
