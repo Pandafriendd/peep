@@ -6,11 +6,10 @@ from ..mypackets import RequestMenu, Menu, Order, Result
 
 class OrderingClientProtocol(asyncio.Protocol):
 
-    def __init__(self, for_test=True):
+    def __init__(self):
         self.transport = None
         self.receiving_state = 0
         self.received_message = []
-        self.for_test = for_test
 
     def connection_made(self, transport):
         self.transport = transport
@@ -37,16 +36,14 @@ class OrderingClientProtocol(asyncio.Protocol):
             if self.receiving_state == 1:
                 print('Client receives a result message')
                 self.receiving_state = -1
-                if not self.for_test:
-                    if len(self.received_message) == 2:
-                        self.transport.close()
+                self.transport.close()
             else:
                 raise ValueError('Wrong state when client receives a result message')
         else:
             raise TypeError('Receive incorrect packet')
 
     def connection_lost(self, exc):
-        print('over')
+        print('Connection is over.')
         self.transport = None
 
     def send_request_menu(self, packet):
