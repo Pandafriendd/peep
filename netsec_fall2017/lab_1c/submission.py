@@ -24,9 +24,9 @@ class MockTransportTestCase1(unittest.TestCase):
     def setUpClass(cls):
         cls.server_protocol = ServerProtocol()
         cls.client_protocol = ClientProtocol()
-        st, ct = MockTransportToProtocol.CreateTransportPair(cls.server_protocol, cls.client_protocol)
-        cls.server_protocol.connection_made(st)
-        cls.client_protocol.connection_made(ct)
+        ct, st = MockTransportToProtocol.CreateTransportPair(cls.server_protocol, cls.client_protocol)
+        cls.server_protocol.connection_made(ct)
+        cls.client_protocol.connection_made(st)
 
     def test_t01_valueEqual_RequestMenu(self):
         request_menu = RequestMenu()
