@@ -20,7 +20,9 @@ def generate_order(menu):
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
+    loop.set_debug(enabled=True)
     cp = OrderingClientProtocol(lambda: RequestMenu(), generate_order)
     coro = playground.connect.getConnector().create_playground_connection(lambda: cp, '4.5.3.9596', 101)
+    # coro = loop.create_connection(lambda: cp, '127.0.0.1', 9000)
     loop.run_until_complete(coro)
     loop.run_forever()
