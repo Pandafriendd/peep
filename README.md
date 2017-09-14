@@ -3,6 +3,12 @@
 
 **Please do not run the codes by entering the lab dir and run: `python submission.py`, which would cause a *ModuleNotFound* error**  
 
+My environment:  
+- macOS Sierra 10.12.6
+- python 3.6.2
+
+All the submission tests have been passed.
+
 To run the code, you should:  
 
 1. **Install virtualenv:**  
