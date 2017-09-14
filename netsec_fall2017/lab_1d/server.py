@@ -2,6 +2,12 @@ import asyncio
 import playground
 from ..lab_1c import OrderingServerProtocol
 
+'''
+
+You should run by `python -m netsec_fall2017.lab_1d.server` in top level dir
+
+'''
+
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     sp = OrderingServerProtocol()

@@ -5,6 +5,12 @@ from ..lab_1c import OrderingClientProtocol
 from ..mypackets import RequestMenu, Menu, Order
 from ..mypackets import init_packet
 
+'''
+
+You should run by `python -m netsec_fall2017.lab_1d.client` in top level dir
+
+'''
+
 
 def generate_order(menu):
     order = Order()
