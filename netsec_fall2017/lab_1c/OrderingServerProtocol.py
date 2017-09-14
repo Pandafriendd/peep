@@ -16,6 +16,7 @@ class OrderingServerProtocol(asyncio.Protocol):
         self.received_message = []
 
     def connection_made(self, transport):
+        print("Received a connection from {}".format(transport.get_extra_info("peername")))
         self.transport = transport
 
     def data_received(self, data):
