@@ -34,18 +34,18 @@ class OrderingServerProtocol(asyncio.Protocol):
                 print('Server receives a request menu message with state %s' % self.receiving_state)
                 menu = self.generate_packet_of_menu()
                 print('Server sends a menu message')
-                self.transport.write(menu.__serialize__())
                 self.receiving_state += 1
+                self.transport.write(menu.__serialize__())
             else:
                 raise ValueError('Wrong state when server receives request menu message')
 
         elif isinstance(data_after_deserialization, Order):
             if self.receiving_state == 1:
-                print('Server receive an Order message')
+                print('Server receive an Order message with state %s' % self.receiving_state)
                 result = self.generate_packet_of_result(data_after_deserialization.ID, data_after_deserialization.setMeal)
                 print('Server sends a Result message')
-                self.transport.write(result.__serialize__())
                 self.receiving_state = -1
+                self.transport.write(result.__serialize__())
             else:
                 raise ValueError('Wrong state when server receives order message')
         else:
