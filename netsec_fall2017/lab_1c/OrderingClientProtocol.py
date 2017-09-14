@@ -6,13 +6,21 @@ from ..mypackets import RequestMenu, Menu, Order, Result
 
 class OrderingClientProtocol(asyncio.Protocol):
 
-    def __init__(self):
+    def __init__(self, cb1, cb2):
         self.transport = None
         self.receiving_state = 0
         self.received_message = []
+        self._cb1 = cb1
+        self._cb2 = cb2
 
     def connection_made(self, transport):
         self.transport = transport
+        packet = self._cb1()
+        if isinstance(packet, RequestMenu):
+            print('Client sends a request menu message')
+            self.transport.write(packet.__serialize__())
+        else:
+            raise TypeError('Send a packet which is not a RequestMenu packet')
 
     def data_received(self, data):
         data_after_deserialization = None
@@ -29,6 +37,12 @@ class OrderingClientProtocol(asyncio.Protocol):
             if self.receiving_state == 0:
                 print('Client receives a menu message')
                 self.receiving_state += 1
+                packet = self._cb2(data_after_deserialization)
+                if isinstance(packet, Order):
+                    print('Client sends an order message')
+                    self.transport.write(packet.__serialize__())
+                else:
+                    raise TypeError('Send a packet which is not a RequestMenu packet')
             else:
                 raise ValueError('Wrong state when client receives a menu message')
 
