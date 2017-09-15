@@ -47,12 +47,14 @@ class OrderingServerProtocol(asyncio.Protocol):
                 print('Server sends a Result message')
                 self.receiving_state = -1
                 self.transport.write(result.__serialize__())
+                self.transport.close()
             else:
                 raise ValueError('Wrong state when server receives order message')
         else:
             raise TypeError('Receive incorrect packet')
 
     def connection_lost(self, exc):
+        print('Server connection lost')
         self.transport = None
 
     def generate_packet_of_menu(self):
