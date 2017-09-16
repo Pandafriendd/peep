@@ -22,7 +22,7 @@ class MockTransportTestCase1(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.server_protocol = ServerProtocol()
+        cls.server_protocol = ServerProtocol(for_test=True)
 
         cb1 = lambda: RequestMenu()
         cb2 = cls.generate_order

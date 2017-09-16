@@ -9,11 +9,12 @@ from ..mypackets import init_packet
 class OrderingServerProtocol(asyncio.Protocol):
     ORDER_NUMBER = 0
 
-    def __init__(self, menu_dict={'A': 5, 'B': 10, 'C': 15}):
+    def __init__(self, menu_dict={'A': 5, 'B': 10, 'C': 15}, for_test=False):
         self.transport = None
         self.menu_dict = menu_dict
         self.receiving_state = 0
         self.received_message = []
+        self._for_test = for_test
 
     def connection_made(self, transport):
         print("Received a connection from {}".format(transport.get_extra_info("peername")))
@@ -47,7 +48,8 @@ class OrderingServerProtocol(asyncio.Protocol):
                 print('Server sends a Result message')
                 self.receiving_state = -1
                 self.transport.write(result.__serialize__())
-                self.transport.close()
+                if not self._for_test:
+                    self.transport.close()
             else:
                 raise ValueError('Wrong state when server receives order message')
         else:
