@@ -1,7 +1,10 @@
 import asyncio
 import playground
 
+from playground.network.common import StackingProtocolFactory
+
 from ..lab_1c import OrderingClientProtocol
+from ..lab_1e import PassThrough1, PassThrough2
 from ..mypackets import RequestMenu, Order
 from ..mypackets import init_packet
 
@@ -21,6 +24,12 @@ def generate_order(menu):
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     cp = OrderingClientProtocol(lambda: RequestMenu(), generate_order)
-    coro = playground.getConnector().create_playground_connection(lambda: cp, '4.5.3.9596', 101)
+
+    f = StackingProtocolFactory(lambda: PassThrough1(), lambda: PassThrough2())
+    ptConnector = playground.Connector(protocolStack=f)
+
+    playground.setConnector('pt', ptConnector)
+
+    coro = playground.getConnector('pt').create_playground_connection(lambda: cp, '4.5.3.9596', 101)
     loop.run_until_complete(coro)
     loop.run_forever()
