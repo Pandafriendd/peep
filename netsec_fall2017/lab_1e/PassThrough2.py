@@ -4,7 +4,7 @@ from playground.network.common import StackingProtocol, StackingTransport
 class PassThrough2(StackingProtocol):
 
     def __init__(self):
-        super.__init__
+        super().__init__()
 
     def connection_made(self, transport):
         print('pt2 conn made')
