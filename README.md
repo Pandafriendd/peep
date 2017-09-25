@@ -7,7 +7,7 @@
     1. install  
     `./start.sh pg i` will install the playground dependencies.
     2. upgrade
-    `./start sh pg u` will upgrade the playground dependencies.
+    `./start.sh pg u` will upgrade the playground dependencies.
 
 2. run
     1. test
