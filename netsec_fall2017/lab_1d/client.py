@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import playground
 
 from playground.network.common import StackingProtocolFactory
@@ -22,6 +23,7 @@ def generate_order(menu):
 
 
 if __name__ == '__main__':
+    mode = sys.argv[1]
     loop = asyncio.get_event_loop()
     cp = OrderingClientProtocol(lambda: RequestMenu(), generate_order)
 
@@ -30,6 +32,6 @@ if __name__ == '__main__':
 
     playground.setConnector('pt', ptConnector)
 
-    coro = playground.getConnector('pt').create_playground_connection(lambda: cp, '4.5.3.9596', 101)
+    coro = playground.getConnector('pt').create_playground_connection(lambda: cp, mode, 101)
     loop.run_until_complete(coro)
     loop.run_forever()
