@@ -38,9 +38,6 @@ To run the code, you should:
     `cd lab-for-netsec`  
     `virtualenv --no-site-packages venv`  
     `source venv/bin/activate`  
-    `pip install git+https://github.com/CrimsonVista/Playground3.git@master`  
+    `./start.sh pg i`  
 
-4. **Run the unit test:**  
-    `./start.sh [args]`  
-   Up to now the args = [1b, 1c]    
-   If your OS does not support .sh. You should use full module path like `python -m netsec_fall2017.lab_1c.submission` instead.
+4. **According to instructions on shell script, run the code.**
