@@ -4,7 +4,7 @@
 ### Instructions on start.sh
 
 1. pg
-    1. install  
+    1. install
     `./start.sh pg i` will install the playground dependencies.
     2. upgrade
     `./start.sh pg u` will upgrade the playground dependencies.
