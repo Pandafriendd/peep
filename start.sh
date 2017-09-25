@@ -2,12 +2,12 @@
 case $1 in
     "pg" )
         case $2 in
-            "install" )
+            "i" )
                 pip install git+https://github.com/CrimsonVista/Playground3.git@master
                 exit
             ;;
 
-            "upgrade" )
+            "u" )
                 pip install git+https://github.com/CrimsonVista/Playground3.git@master --upgrade
                 exit
             ;;
