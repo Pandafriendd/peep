@@ -1,6 +1,7 @@
 import unittest
 
 from ..mypackets import RequestMenu, Menu, Order, Result, ListTest
+from ..playgroundpackets import PEEPPacket
 from playground.network.packet import PacketType
 from playground.network.packet.encoders.PacketEncodingError import PacketEncodingError
 
@@ -11,6 +12,7 @@ from playground.network.packet.encoders.PacketEncodingError import PacketEncodin
 """
 
 
+@unittest.skip('no reason')
 class MyPacketsTestCase(unittest.TestCase):
 
     def test_packetOfRequestMenu(self):
@@ -86,6 +88,15 @@ class MyPacketsTestCase(unittest.TestCase):
     def initPacket(packet, attr_list):
         for index in range(len(packet.FIELDS)):
             packet.__setattr__(packet.FIELDS[index][0], attr_list[index])
+
+
+class PEEPTestCase(unittest.TestCase):
+
+    def test_packet(self):
+        pp = PEEPPacket()
+        pp.Type = 2
+        pps = pp.__serialize__()
+        self.assertEqual(pp, PEEPPacket.Deserialize(pps))
 
 
 if __name__ == '__main__':
