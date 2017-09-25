@@ -1,2 +1,50 @@
 #!/bin/bash
-python -m netsec_fall2017.lab_$1.submission
+case $1 in
+    "pg" )
+        case $2 in
+            "install" )
+                pip install git+https://github.com/CrimsonVista/Playground3.git@master
+                exit
+            ;;
+
+            "upgrade" )
+                pip install git+https://github.com/CrimsonVista/Playground3.git@master --upgrade
+                exit
+            ;;
+
+            * ) echo "Incorrect args"
+        esac
+        exit
+    ;;
+
+    "run" )
+        case $2 in
+            "test" )
+                python -m netsec_fall2017.lab_$3.submission
+                exit
+            ;;
+
+            "server" )
+                python -m netsec_fall2017.lab_1d.server
+                exit
+            ;;
+
+            "client" )
+                if [[ $# == 2 ]]
+                then
+                    mode="4.5.3.9596"
+                else
+                    mode=$3
+                fi
+                python -m netsec_fall2017.lab_1d.client ${mode}
+                exit
+            ;;
+
+            * ) echo "Incorrect args"
+        esac
+        exit
+    ;;
+
+    * ) echo "Incorrect args"
+
+esac
