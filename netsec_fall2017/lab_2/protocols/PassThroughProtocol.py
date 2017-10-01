@@ -1,15 +1,14 @@
-from playground.network.common import StackingProtocol
-from .PEEPTransport import PEEPTransport
+from playground.network.common import StackingProtocol, StackingTransport
 
 
 class PassThroughProtocol(StackingProtocol):
 
     def __init__(self):
-        super(PassThroughProtocol, self).__init__()
+        super().__init__()
 
     def connection_made(self, transport):
         self.transport = transport
-        self.higherProtocol().connection_made(PEEPTransport(self.transport))
+        self.higherProtocol().connection_made(StackingTransport(self.transport))
 
     def data_received(self, data):
         self.higherProtocol().data_received(data)
