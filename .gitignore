@@ -1,3 +1,7 @@
 .idea/
 venv/
+*.pid
+*.pid.lock
+*.status
+*.local-*
 __pycache__
