@@ -32,7 +32,7 @@ case $1 in
             "client" )
                 if [[ $# == 2 ]]
                 then
-                    mode="4.5.3.9596"
+                    mode="26.1.22.9"
                 else
                     mode=$3
                 fi
