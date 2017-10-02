@@ -93,10 +93,10 @@ class MyPacketsTestCase(unittest.TestCase):
 class PEEPTestCase(unittest.TestCase):
 
     def test_packet(self):
-        pp = PEEPPacket()
-        pp.Type = 2
+        pp = PEEPPacket(Type=2, Checksum=0)
         pps = pp.__serialize__()
         self.assertEqual(pp, PEEPPacket.Deserialize(pps))
+        self.assertEqual(2, PEEPPacket.Deserialize(pps).Type)
 
 
 if __name__ == '__main__':

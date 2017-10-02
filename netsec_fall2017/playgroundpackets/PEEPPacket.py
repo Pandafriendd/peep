@@ -1,6 +1,7 @@
 from playground.network.packet.fieldtypes.attributes import Optional
 from playground.network.packet.fieldtypes import UINT8, UINT16, UINT32, BUFFER
 from playground.network.packet import PacketType
+from playground.common import CustomConstant as Constant
 
 
 class PEEPPacket(PacketType):
@@ -14,3 +15,8 @@ class PEEPPacket(PacketType):
         ("Acknowledgement", UINT32({Optional: True})),
         ("Data", BUFFER({Optional: True}))
     ]
+
+    SYN = Constant(intValue=0, strValue='SYN')
+
+
+    PACKET_TYPES = [SYN]
