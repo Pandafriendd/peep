@@ -1,5 +1,5 @@
 import playground
-from netsec_fall2017.lab_2.factorys import get_client_factory, get_server_factory
+from netsec_fall2017.lab_2.factory import get_client_factory, get_server_factory
 
 cf = get_client_factory()
 sf = get_server_factory()
