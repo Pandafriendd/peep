@@ -47,15 +47,22 @@ class PEEPPacket(PacketType):
         return packet
 
     @classmethod
-    def Create_SYN_ACK(cls, client_seq):
+    def Create_SYN_ACK(cls, client_seq_num):
         seq_number = random.randint(0, 2**16)
-        packet = cls(Type=cls.SYN_ACK, SequenceNumber=seq_number, Checksum=0, Acknowledgement=client_seq+1)
+        packet = cls(Type=cls.SYN_ACK, SequenceNumber=seq_number, Checksum=0, Acknowledgement=client_seq_num+1)
         packet.updateChecksum()
         return packet
 
     @classmethod
-    def Create_ACK(cls, server_seq, client_seq):
-        seq_number = client_seq + 1
-        packet = cls(Type=cls.ACK, SequenceNumber=seq_number, Checksum=0, Acknowledgement=server_seq+1)
+    def Create_ACK(cls, server_seq_num, client_seq_num):
+        packet = cls(Type=cls.ACK, SequenceNumber=client_seq_num, Checksum=0, Acknowledgement=server_seq_num+1)
         packet.updateChecksum()
         return packet
+
+    @classmethod
+    def Create_DATA(cls, seq_number, data, size_for_previous_data):
+        packet = cls(Type=cls.DATA, SequenceNumber=seq_number+size_for_previous_data+1, Checksum=0, Data=data)
+        packet.updateChecksum()
+        return packet
+
+
