@@ -11,7 +11,7 @@ class PEEPClient(StackingProtocol):
         super().__init__()
         self.transport = None
         self._deserializer = PacketType.Deserializer()
-        self._sequence_number = random.randint(1000, 9999)
+        self._sequence_number_for_last_packet = None
         self._state = 0
 
     def connection_made(self, transport):
@@ -24,9 +24,7 @@ class PEEPClient(StackingProtocol):
         if isinstance(data_packet, PEEPPacket):
             if self._state == 1:
                 if data_packet.Type == 1:
-                    print('Client received SYN-ACK.')
-                    self.handshake_ack(data_packet.SequenceNumber)
-                    print('Client sent ACK')
+                    self.handshake_ack(data_packet)
                     self.higherProtocol().connection_made(StackingTransport(self.transport))
                 else:
                     raise TypeError('Not a SYN-ACK packet.')
@@ -41,13 +39,22 @@ class PEEPClient(StackingProtocol):
         self.higherProtocol().connection_lost(exc)
 
     def handshake_syn(self):
-        handshake_packet = PEEPPacket(Type=0, SequenceNumber=self._sequence_number, Checksum=0)
+        handshake_packet = PEEPPacket.Create_SYN()
         self.transport.write(handshake_packet.__serialize__())
-        self._sequence_number += 1
+        print('PEEP client sent SYN.')
+        self._sequence_number_for_last_packet = handshake_packet.SequenceNumber
         self._state = 1
 
-    def handshake_ack(self, seq):
-        handshake_packet = PEEPPacket(Type=2, SequenceNumber=self._sequence_number, Checksum=0, Acknowledgement=seq+1)
-        self.transport.write(handshake_packet.__serialize__())
-        self._sequence_number += 1
-        self._state = 2
+    def handshake_ack(self, data_packet):
+        if data_packet.verifyChecksum():
+            if data_packet.Acknowledgement == self._sequence_number_for_last_packet + 1:
+                print('PEEP client received SYN-ACK.')
+                handshake_packet = PEEPPacket.Create_ACK(data_packet.SequenceNumber, self._sequence_number_for_last_packet)
+                self.transport.write(handshake_packet.__serialize__())
+                print('PEEP client sent ACK')
+                self._sequence_number_for_last_packet += 1
+                self._state = 2
+            else:
+                raise ValueError('Incorrect sequence number.')
+        else:
+            raise ValueError('SYN-ACK incorrect checksum.')
