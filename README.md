@@ -1,10 +1,11 @@
 # Lab for class of Network Security
 
-### Content
+### Contents
 - Handshake examination instructions
 - Installation
 - Instructions on start.sh
 
+---
 
 ### Handshake examination instructions
 1. Install
