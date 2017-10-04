@@ -3,11 +3,11 @@ import logging
 import sys
 import playground
 
-from playground.network.common import StackingProtocolFactory
+# from playground.network.common import StackingProtocolFactory
 
 from ..lab_1c import OrderingClientProtocol
-from ..lab_1e import PassThrough1, PassThrough2
-from ..lab_2.protocols import PassThroughProtocol, PEEPClient
+# from ..lab_1e import PassThrough1, PassThrough2
+# from ..lab_2.protocols import PassThroughProtocol, PEEPClient
 from ..mypackets import RequestMenu, Order
 from ..mypackets import init_packet
 
