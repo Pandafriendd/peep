@@ -21,7 +21,6 @@ class PEEPServer(StackingProtocol):
         data_packet = packet_deserialize(self._deserializer, data)
         if isinstance(data_packet, PEEPPacket):
             if self._state == 0:
-                print(PEEPPacket.SYN == 0)
                 if data_packet.Type == 0:
                     self.handshake_synack(data_packet)
                 else:

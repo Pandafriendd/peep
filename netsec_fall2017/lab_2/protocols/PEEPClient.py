@@ -16,6 +16,7 @@ class PEEPClient(StackingProtocol):
     def connection_made(self, transport):
         print('---- PEEP client connected ----')
         self.transport = transport
+        self.transport.protocol = self
         self.handshake_syn()
 
     def data_received(self, data):
