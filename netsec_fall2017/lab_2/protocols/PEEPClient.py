@@ -68,6 +68,3 @@ class PEEPClient(StackingProtocol):
         else:
             print('SYN-ACK incorrect checksum.')
 
-    def forcefully_termination(self):
-        print('Timeout session')
-        self.transport.close()
