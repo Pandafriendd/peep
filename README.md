@@ -1,6 +1,12 @@
 # Lab for class of Network Security
 
-## Handshake examination instructions
+### Content
+- Handshake examination instructions
+- Installation
+- Instructions on start.sh
+
+
+### Handshake examination instructions
 1. Install
 2. Make switch and vnic on:  
 `cd /path/to/lab-for-netsec`  
@@ -15,7 +21,7 @@ Check the pnetworking status, you should see a vnic called v_eth0 whose playgrou
 In server, you could find **'PEEP server received SYN'**, **'PEEP server sent SYN-ACK'**, and something like that. In client, you could see **'PEEP client sent SYN'** and something like that.
 
 
-## Installation
+### Installation
 Environment:  
 - macOS Sierra 10.12.6
 - python 3.6.2
@@ -34,7 +40,7 @@ Environment:
     `./start.sh pg i`
 
 
-## Instructions on start.sh
+### Instructions on start.sh
 1. pg
     1. install
     `./start.sh pg i` will install the playground dependencies.
