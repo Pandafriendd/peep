@@ -25,8 +25,8 @@ class PEEPServer(StackingProtocol):
             if self._state == 0:
                 if data_packet.Type == 0:
                     print('Server received SYN')
-                    self.handshake_synack(data_packet.SequenceNumber)
-                    print('Server sent SYN-ACK')
+                    # self.handshake_synack(data_packet.SequenceNumber)
+                    # print('Server sent SYN-ACK')
                 else:
                     raise TypeError('Not a SYN packet')
             elif self._state == 1:

@@ -1,6 +1,7 @@
 import random
 from playground.network.common import StackingProtocol, StackingTransport
 from playground.network.packet.PacketType import PacketType
+import asyncio
 
 from ...playgroundpackets import PEEPPacket, packet_deserialize
 
@@ -40,14 +41,23 @@ class PEEPClient(StackingProtocol):
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
 
+    def resend(self, state):
+        if state == self._state:
+            print(" should resend ")
+            self.handshake_syn()
+
     def handshake_syn(self):
         handshake_packet = PEEPPacket(Type=0, SequenceNumber=self._sequence_number, Checksum=0)
         self.transport.write(handshake_packet.__serialize__())
+        print("Client send SYN")
         self._sequence_number += 1
         self._state = 1
+        asyncio.get_event_loop().call_later(3, self.resend(1))
 
     def handshake_ack(self, seq):
         handshake_packet = PEEPPacket(Type=2, SequenceNumber=self._sequence_number, Checksum=0, Acknowledgement=seq+1)
         self.transport.write(handshake_packet.__serialize__())
         self._sequence_number += 1
         self._state = 2
+
+
