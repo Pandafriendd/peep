@@ -1,6 +1,6 @@
 # Lab for class of Network Security
 
-### Contents
+### Content
 - Handshake examination instructions
 - Installation
 - Instructions on start.sh
@@ -21,6 +21,7 @@ Check the pnetworking status, you should see a vnic called v_eth0 whose playgrou
 5. Now you can see connection information printed on the terminal. I have already written some basic data transmission codes, so you can see all the information from handshake to Application layer messages.  
 In server, you could find **'PEEP server received SYN'**, **'PEEP server sent SYN-ACK'**, and something like that. In client, you could see **'PEEP client sent SYN'** and something like that.
 
+---
 
 ### Installation
 Environment:  
@@ -40,6 +41,7 @@ Environment:
     `source venv/bin/activate`  
     `./start.sh pg i`
 
+---
 
 ### Instructions on start.sh
 1. pg
