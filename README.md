@@ -13,9 +13,9 @@
     1. test
     `./start.sh run test 1b` will run submission file in lab 1b. Up to now, you can only run 1b or 1c.
     2. server
-    `./start.sh run server` will run a Lab 1 server which listen at ('4.5.3.9596', 101).
+    `./start.sh run server` will run a Lab 1 server which listen at ('26.1.22.9', 101).
     3. client
-    `./start.sh run client mode` will run a Lab 1 client which connect to (mode, 101). The default value of mode is '4.5.3.9596'.
+    `./start.sh run client mode` will run a Lab 1 client which connect to (mode, 101). The default value of mode is '26.1.22.9'.
 
 ---
 

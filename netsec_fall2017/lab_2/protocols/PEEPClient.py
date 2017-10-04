@@ -1,10 +1,9 @@
-import random
-from playground.network.common import StackingProtocol, StackingTransport
+from playground.network.common import StackingProtocol
 from playground.network.packet.PacketType import PacketType
 import asyncio
 
 from ...playgroundpackets import PEEPPacket, packet_deserialize
-
+from ..transport.PEEPTransport import PEEPTransport
 
 class PEEPClient(StackingProtocol):
 
@@ -12,12 +11,13 @@ class PEEPClient(StackingProtocol):
         super().__init__()
         self.transport = None
         self._deserializer = PacketType.Deserializer()
-        self._sequence_number = random.randint(1000, 9999)
+        self._sequence_number = None
         self._state = 0
 
     def connection_made(self, transport):
         print('---- PEEP client connected ----')
         self.transport = transport
+        self.transport.protocol = self
         self.handshake_syn()
 
     def data_received(self, data):
@@ -25,14 +25,13 @@ class PEEPClient(StackingProtocol):
         if isinstance(data_packet, PEEPPacket):
             if self._state == 1:
                 if data_packet.Type == 1:
-                    print('Client received SYN-ACK.')
-                    self.handshake_ack(data_packet.SequenceNumber)
-                    print('Client sent ACK')
-                    self.higherProtocol().connection_made(StackingTransport(self.transport))
+                    self.handshake_ack(data_packet)
+                    self.higherProtocol().connection_made(PEEPTransport(self.transport, self._sequence_number))
                 else:
                     raise TypeError('Not a SYN-ACK packet.')
             elif self._state == 2:
-                self.higherProtocol().data_received(data)
+                data_field = data_packet.Data
+                self.higherProtocol().data_received(data_field)
             else:
                 raise ValueError('PEEP client wrong state.')
         else:
@@ -47,13 +46,19 @@ class PEEPClient(StackingProtocol):
             self.handshake_syn()
 
     def handshake_syn(self):
-        handshake_packet = PEEPPacket(Type=0, SequenceNumber=self._sequence_number, Checksum=0)
+        handshake_packet = PEEPPacket.Create_SYN()
         self.transport.write(handshake_packet.__serialize__())
+<<<<<<< HEAD
         print("Client send SYN")
         self._sequence_number += 1
+=======
+        print('PEEP client sent SYN.')
+        self._sequence_number = handshake_packet.SequenceNumber
+>>>>>>> 492163c4041800f46fd7590e37c995d2aaa9cdb8
         self._state = 1
         asyncio.get_event_loop().call_later(3, self.resend(1))
 
+<<<<<<< HEAD
     def handshake_ack(self, seq):
         handshake_packet = PEEPPacket(Type=2, SequenceNumber=self._sequence_number, Checksum=0, Acknowledgement=seq+1)
         self.transport.write(handshake_packet.__serialize__())
@@ -61,3 +66,18 @@ class PEEPClient(StackingProtocol):
         self._state = 2
 
 
+=======
+    def handshake_ack(self, data_packet):
+        if data_packet.verifyChecksum():
+            if data_packet.Acknowledgement == self._sequence_number + 1:
+                print('PEEP client received SYN-ACK.')
+                self._sequence_number += 1
+                handshake_packet = PEEPPacket.Create_ACK(data_packet.SequenceNumber, self._sequence_number)
+                self.transport.write(handshake_packet.__serialize__())
+                print('PEEP client sent ACK')
+                self._state = 2
+            else:
+                raise ValueError('Incorrect sequence number.')
+        else:
+            raise ValueError('SYN-ACK incorrect checksum.')
+>>>>>>> 492163c4041800f46fd7590e37c995d2aaa9cdb8
