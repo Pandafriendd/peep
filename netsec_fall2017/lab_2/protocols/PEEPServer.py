@@ -1,3 +1,4 @@
+import asyncio
 from playground.network.common import StackingProtocol
 from playground.network.packet.PacketType import PacketType
 
@@ -6,10 +7,13 @@ from ..transport import PEEPTransport
 
 class PEEPServer(StackingProtocol):
 
+    TIMEOUT_SECONDS = 5
+
     def __init__(self):
         super().__init__()
         self.transport = None
         self._deserializer = PacketType.Deserializer()
+        self._timeout_handler = None
         self._sequence_number = None
         self._state = 0
 
@@ -23,20 +27,22 @@ class PEEPServer(StackingProtocol):
             if self._state == 0:
                 if data_packet.Type == 0:
                     self.handshake_synack(data_packet)
+                    self._timeout_handler = asyncio.get_event_loop().call_later(PEEPServer.TIMEOUT_SECONDS, self.forcefully_termination)
                 else:
-                    raise TypeError('Not a SYN packet')
+                    print('PEEP server is waiting for a SYN packet')
             elif self._state == 1:
                 if data_packet.Type == 2:
+                    self._timeout_handler.cancel()
                     self.higher_protocol_connection_made(data_packet)
                 else:
-                    raise TypeError('Not a ACK packet')
+                    print('PEEP server is waiting for a ACK packet')
             elif self._state == 2:
                 data_field = data_packet.Data
                 self.higherProtocol().data_received(data_field)
             else:
                 raise ValueError('PEEP server wrong state')
         else:
-            raise TypeError('Not a PEEP packet')
+            print('PEEP server is waiting for a PEEP packet')
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
@@ -50,15 +56,20 @@ class PEEPServer(StackingProtocol):
             self._sequence_number = handshake_packet.SequenceNumber
             self._state = 1
         else:
-            raise ValueError('SYN incorrect checksum.')
+            print('SYN incorrect checksum.')
 
     def higher_protocol_connection_made(self, data_packet):
         if data_packet.verifyChecksum():
             if data_packet.Acknowledgement == self._sequence_number + 1:
                 print('Server received ACK')
+                self._timeout_handler.cancel()
                 self.higherProtocol().connection_made(PEEPTransport(self.transport, self._sequence_number))
                 self._state = 2
             else:
-                raise ValueError('Incorrect sequence number.')
+                print('Incorrect sequence number.')
         else:
-            raise ValueError('ACK incorrect checksum')
+            print('ACK incorrect checksum')
+
+    def forcefully_termination(self):
+        print('Timeout session')
+        self.transport.close()

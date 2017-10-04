@@ -1,3 +1,4 @@
+# import asyncio
 from playground.network.common import StackingProtocol
 from playground.network.packet.PacketType import PacketType
 
@@ -6,10 +7,13 @@ from ..transport.PEEPTransport import PEEPTransport
 
 class PEEPClient(StackingProtocol):
 
+    TIMEOUT_SECONDS = 5
+
     def __init__(self):
         super().__init__()
         self.transport = None
         self._deserializer = PacketType.Deserializer()
+        # self._timeout_handler = None
         self._sequence_number = None
         self._state = 0
 
@@ -24,17 +28,19 @@ class PEEPClient(StackingProtocol):
         if isinstance(data_packet, PEEPPacket):
             if self._state == 1:
                 if data_packet.Type == 1:
+                    # self._timeout_handler.cancel()
                     self.handshake_ack(data_packet)
                     self.higherProtocol().connection_made(PEEPTransport(self.transport, self._sequence_number))
                 else:
-                    raise TypeError('Not a SYN-ACK packet.')
+                    print('PEEP client is waiting for a SYN-ACK packet.')
             elif self._state == 2:
+                # self._timeout_handler.cancel()
                 data_field = data_packet.Data
                 self.higherProtocol().data_received(data_field)
             else:
                 raise ValueError('PEEP client wrong state.')
         else:
-            raise TypeError('Not a PEEP packet.')
+            print('PEEP client is waiting for a PEEP packet.')
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
@@ -45,6 +51,7 @@ class PEEPClient(StackingProtocol):
         print('PEEP client sent SYN.')
         self._sequence_number = handshake_packet.SequenceNumber
         self._state = 1
+        # self._timeout_handler = asyncio.get_event_loop().call_later(PEEPClient.TIMEOUT_SECONDS, self.handshake_syn)
 
     def handshake_ack(self, data_packet):
         if data_packet.verifyChecksum():
@@ -55,7 +62,12 @@ class PEEPClient(StackingProtocol):
                 self.transport.write(handshake_packet.__serialize__())
                 print('PEEP client sent ACK')
                 self._state = 2
+                # self._timeout_handler = asyncio.get_event_loop().call_later(PEEPClient.TIMEOUT_SECONDS, self.handshake_ack)
             else:
-                raise ValueError('Incorrect sequence number.')
+                print('Incorrect sequence number.')
         else:
-            raise ValueError('SYN-ACK incorrect checksum.')
+            print('SYN-ACK incorrect checksum.')
+
+    def forcefully_termination(self):
+        print('Timeout session')
+        self.transport.close()
