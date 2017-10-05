@@ -62,7 +62,6 @@ class PEEPServer(StackingProtocol):
         if data_packet.verifyChecksum():
             if data_packet.Acknowledgement == self._sequence_number + 1:
                 print('PEEP Server received ACK')
-                self._timeout_handler.cancel()
                 self.higherProtocol().connection_made(PEEPTransport(self.transport, self._sequence_number))
                 self._state = 2
             else:
