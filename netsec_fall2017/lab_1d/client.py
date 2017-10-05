@@ -11,8 +11,8 @@ from ..lab_1c import OrderingClientProtocol
 from ..mypackets import RequestMenu, Order
 from ..mypackets import init_packet
 
-logging.getLogger().setLevel(logging.NOTSET)
-logging.getLogger().addHandler(logging.StreamHandler())
+# logging.getLogger().setLevel(logging.NOTSET)
+# logging.getLogger().addHandler(logging.StreamHandler())
 
 
 def generate_order(menu):
@@ -24,7 +24,7 @@ def generate_order(menu):
 if __name__ == '__main__':
     mode = sys.argv[1]
     loop = asyncio.get_event_loop()
-    loop.set_debug(enabled=True)
+    # loop.set_debug(enabled=True)
     cp = OrderingClientProtocol(lambda: RequestMenu(), generate_order)
 
     # f = StackingProtocolFactory(lambda: PassThroughProtocol(), lambda: PEEPClient())
