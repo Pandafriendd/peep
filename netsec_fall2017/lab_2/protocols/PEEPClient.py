@@ -48,25 +48,11 @@ class PEEPClient(StackingProtocol):
     def handshake_syn(self):
         handshake_packet = PEEPPacket.Create_SYN()
         self.transport.write(handshake_packet.__serialize__())
-<<<<<<< HEAD
-        print("Client send SYN")
-        self._sequence_number += 1
-=======
         print('PEEP client sent SYN.')
         self._sequence_number = handshake_packet.SequenceNumber
->>>>>>> 492163c4041800f46fd7590e37c995d2aaa9cdb8
         self._state = 1
         asyncio.get_event_loop().call_later(3, self.resend(1))
 
-<<<<<<< HEAD
-    def handshake_ack(self, seq):
-        handshake_packet = PEEPPacket(Type=2, SequenceNumber=self._sequence_number, Checksum=0, Acknowledgement=seq+1)
-        self.transport.write(handshake_packet.__serialize__())
-        self._sequence_number += 1
-        self._state = 2
-
-
-=======
     def handshake_ack(self, data_packet):
         if data_packet.verifyChecksum():
             if data_packet.Acknowledgement == self._sequence_number + 1:
@@ -80,4 +66,4 @@ class PEEPClient(StackingProtocol):
                 raise ValueError('Incorrect sequence number.')
         else:
             raise ValueError('SYN-ACK incorrect checksum.')
->>>>>>> 492163c4041800f46fd7590e37c995d2aaa9cdb8
+
