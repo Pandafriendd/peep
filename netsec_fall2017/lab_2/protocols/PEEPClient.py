@@ -42,7 +42,7 @@ class PEEPClient(StackingProtocol):
 
     def resend(self, state):
         if state == self._state:
-            print(" should resend ")
+            print("should resend")
             self.handshake_syn()
 
     def handshake_syn(self):

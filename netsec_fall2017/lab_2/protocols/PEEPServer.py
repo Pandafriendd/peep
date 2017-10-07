@@ -4,6 +4,7 @@ from playground.network.packet.PacketType import PacketType
 from ...playgroundpackets import PEEPPacket, packet_deserialize
 from ..transport import PEEPTransport
 
+
 class PEEPServer(StackingProtocol):
 
     def __init__(self):
