@@ -8,12 +8,12 @@ from ..lab_1c import OrderingServerProtocol
 # from ..lab_1e import PassThrough1, PassThrough2
 # from ..lab_2.protocols import PEEPServer, PassThroughProtocol
 
-logging.getLogger().setLevel(logging.NOTSET)
-logging.getLogger().addHandler(logging.StreamHandler())
+# logging.getLogger().setLevel(logging.NOTSET)
+# logging.getLogger().addHandler(logging.StreamHandler())
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    loop.set_debug(enabled=True)
+    # loop.set_debug(enabled=True)
 
     # f = StackingProtocolFactory(lambda: PassThroughProtocol(), lambda: PEEPServer())
     # f = StackingProtocolFactory(lambda: PassThrough1(), lambda: PassThrough2())
