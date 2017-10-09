@@ -1,10 +1,11 @@
-import random, zlib
+import random, zlib, functools
 from playground.network.packet.fieldtypes.attributes import Optional
 from playground.network.packet.fieldtypes import UINT8, UINT16, UINT32, BUFFER
 from playground.network.packet import PacketType
 from playground.common import CustomConstant as Constant
 
 
+@functools.total_ordering
 class PEEPPacket(PacketType):
     DEFINITION_IDENTIFIER = 'peep.packet'
     DEFINITION_VERSION = '1.0'
@@ -17,6 +18,7 @@ class PEEPPacket(PacketType):
         ("Data", BUFFER({Optional: True}))
     ]
 
+    # Type
     SYN = Constant(intValue=0, strValue='SYN')
     SYN_ACK = Constant(intValue=1, strValue='SYN-ACK')
     ACK = Constant(intValue=2, strValue='ACK')
@@ -39,6 +41,9 @@ class PEEPPacket(PacketType):
     def verifyChecksum(self):
         return self.Checksum == self.calculateChecksum()
 
+    def __lt__(self, other):
+        return self.SequenceNumber < other.SequenceNumber
+
     @classmethod
     def Create_SYN(cls):
         seq_number = random.randint(0, 2**16)
@@ -54,14 +59,20 @@ class PEEPPacket(PacketType):
         return packet
 
     @classmethod
-    def Create_ACK(cls, server_seq_num, client_seq_num):
-        packet = cls(Type=cls.ACK, SequenceNumber=client_seq_num, Checksum=0, Acknowledgement=server_seq_num+1)
+    def Create_handshake_ACK(cls, server_seq_num, client_seq_num):
+        packet = cls(Type=cls.ACK, SequenceNumber=client_seq_num+1, Checksum=0, Acknowledgement=server_seq_num+1)
+        packet.updateChecksum()
+        return packet
+
+    @classmethod
+    def Create_packet_ACK(cls, expected_seq_number):
+        packet = cls(Type=cls.ACK, Checksum=0, Acknowledgement=expected_seq_number)
         packet.updateChecksum()
         return packet
 
     @classmethod
     def Create_DATA(cls, seq_number, data, size_for_previous_data):
-        packet = cls(Type=cls.DATA, SequenceNumber=seq_number+size_for_previous_data+1, Checksum=0, Data=data)
+        packet = cls(Type=cls.DATA, SequenceNumber=seq_number+size_for_previous_data, Checksum=0, Data=data)
         packet.updateChecksum()
         return packet
 
