@@ -50,13 +50,13 @@ class PEEP(StackingProtocol):
         if data_packet.verifyChecksum():
             if data_packet.SequenceNumber == self._seq_num_for_next_expected_packet:
                 # ------ higher protocol data received ------
-                # self.higherProtocol().data_received(data_packet.Data)
+                self.higherProtocol().data_received(data_packet.Data)
                 # -------------------------------------------
                 self._seq_num_for_next_expected_packet += len(data_packet.__serialize__())
                 # check disordered packets heap whether there exists extra packets can be transmitted
                 while len(self._disordered_packets_heap) > 0 and self._disordered_packets_heap[0].SequenceNumber == self._seq_num_for_next_expected_packet:
                     next_packet = heapq.heappop(self._disordered_packets_heap)
-                    # self.higherProtocol().data_received(next_packet.Data)
+                    self.higherProtocol().data_received(next_packet.Data)
                     self._seq_num_for_next_expected_packet += len(next_packet.__serialize__())
 
             else:
