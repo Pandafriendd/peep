@@ -55,13 +55,13 @@ class PEEPPacket(PacketType):
 
     @classmethod
     def Create_ACK(cls, server_seq_num, client_seq_num):
-        packet = cls(Type=cls.ACK, SequenceNumber=client_seq_num, Checksum=0, Acknowledgement=server_seq_num+1)
+        packet = cls(Type=cls.ACK, SequenceNumber=client_seq_num, Checksum=0, Acknowledgement=server_seq_num)
         packet.updateChecksum()
         return packet
 
     @classmethod
-    def Create_DATA(cls, seq_number, data, size_for_previous_data):
-        packet = cls(Type=cls.DATA, SequenceNumber=seq_number+size_for_previous_data+1, Checksum=0, Data=data)
+    def Create_DATA(cls, seq_number, data):
+        packet = cls(Type=cls.DATA, SequenceNumber=seq_number, Checksum=0, Data=data)
         packet.updateChecksum()
         return packet
 
