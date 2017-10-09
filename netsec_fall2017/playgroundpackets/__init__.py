@@ -1,4 +1,3 @@
-from playground.network.packet.PacketType import PacketType
 from .PEEPPacket import PEEPPacket
 
 
