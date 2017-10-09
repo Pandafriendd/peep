@@ -29,6 +29,11 @@ case $1 in
                 exit
             ;;
 
+            "es" )
+                python -m netsec_fall2017.lab_2.test.EchoServer
+                exit
+            ;;
+
             "client" )
                 if [[ $# == 2 ]]
                 then
@@ -37,6 +42,11 @@ case $1 in
                     mode=$3
                 fi
                 python -m netsec_fall2017.lab_1d.client ${mode}
+                exit
+            ;;
+
+            "ec" )
+                python -m netsec_fall2017.lab_2.test.EchoClient
                 exit
             ;;
 
