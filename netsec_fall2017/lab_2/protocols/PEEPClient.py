@@ -13,24 +13,25 @@ class PEEPClient(PEEP):
         self.handshake_init()
 
     def data_received(self, data):
-        data_packet = packet_deserialize(self._deserializer, data)
-        if isinstance(data_packet, PEEPPacket):
-            if self._state == 1:
-                if data_packet.Type == 1:
-                    self.handshake_synack_received(data_packet)
+        self._deserializer.update(data)
+        for data_packet in self._deserializer.nextPackets():
+            if isinstance(data_packet, PEEPPacket):
+                if self._state == 1:
+                    if data_packet.Type == 1:
+                        self.handshake_synack_received(data_packet)
+                    else:
+                        print('PEEP client is waiting for a SYN-ACK packet.')
+                elif self._state == 2:
+                    if data_packet.Type == 2:
+                        self.ack_received(data_packet)
+                    elif data_packet.Type == 5:
+                        self.data_packet_received(data_packet)
+                    else:
+                        print('PEEP client is waiting for a ACK/DATA packet')
                 else:
-                    print('PEEP client is waiting for a SYN-ACK packet.')
-            elif self._state == 2:
-                if data_packet.Type == 2:
-                    self.ack_received(data_packet)
-                elif data_packet.Type == 5:
-                    self.data_packet_received(data_packet)
-                else:
-                    print('PEEP client is waiting for a ACK/DATA packet')
+                    raise ValueError('PEEP client wrong state.')
             else:
-                raise ValueError('PEEP client wrong state.')
-        else:
-            print('PEEP client is waiting for a PEEP packet.')
+                print('PEEP client is waiting for a PEEP packet.')
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)

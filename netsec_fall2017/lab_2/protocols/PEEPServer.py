@@ -17,32 +17,33 @@ class PEEPServer(PEEP):
         self.transport = transport
 
     def data_received(self, data):
-        data_packet = packet_deserialize(self._deserializer, data)
-        if isinstance(data_packet, PEEPPacket):
-            if self._state == 0:
-                if data_packet.Type == 0:
-                    self.handshake_syn_received(data_packet)
-                    self._timeout_handler = asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.forcefully_termination)
-                else:
-                    print('PEEP server is waiting for a SYN packet')
-            elif self._state == 1:
-                if data_packet.Type == 2:
-                    self._timeout_handler.cancel()
-                    self.handshake_ack_received(data_packet)
-                else:
-                    print('PEEP server is waiting for a ACK packet')
-            elif self._state == 2:
-                if data_packet.Type == 2:
-                    self.ack_received(data_packet)
-                elif data_packet.Type == 5:
-                    self.data_packet_received(data_packet)
-                else:
-                    print('PEEP server is waiting for a ACK/DATA packet')
+        self._deserializer.update(data)
+        for data_packet in self._deserializer.nextPackets():
+            if isinstance(data_packet, PEEPPacket):
+                if self._state == 0:
+                    if data_packet.Type == 0:
+                        self.handshake_syn_received(data_packet)
+                        self._timeout_handler = asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.forcefully_termination)
+                    else:
+                        print('PEEP server is waiting for a SYN packet')
+                elif self._state == 1:
+                    if data_packet.Type == 2:
+                        self._timeout_handler.cancel()
+                        self.handshake_ack_received(data_packet)
+                    else:
+                        print('PEEP server is waiting for a ACK packet')
+                elif self._state == 2:
+                    if data_packet.Type == 2:
+                        self.ack_received(data_packet)
+                    elif data_packet.Type == 5:
+                        self.data_packet_received(data_packet)
+                    else:
+                        print('PEEP server is waiting for a ACK/DATA packet')
 
+                else:
+                    raise ValueError('PEEP server wrong state')
             else:
-                raise ValueError('PEEP server wrong state')
-        else:
-            print('PEEP server is waiting for a PEEP packet')
+                print('PEEP server is waiting for a PEEP packet')
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
