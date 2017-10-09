@@ -1,21 +1,16 @@
 import asyncio
-from playground.network.common import StackingProtocol
-from playground.network.packet.PacketType import PacketType
 
 from ...playgroundpackets import PEEPPacket, packet_deserialize
-from ..transport import PEEPTransport
+from ..constants import TIMEOUT_SECONDS
+from ..transport.PEEPTransport import PEEPTransport
+from .PEEP import PEEP
 
-class PEEPServer(StackingProtocol):
 
-    TIMEOUT_SECONDS = 5
+class PEEPServer(PEEP):
 
     def __init__(self):
-        super().__init__()
-        self.transport = None
-        self._deserializer = PacketType.Deserializer()
+        super(PEEPServer, self).__init__()
         self._timeout_handler = None
-        self._sequence_number = None
-        self._state = 0
 
     def connection_made(self, transport):
         print('---- PEEP server connected ----')
@@ -26,19 +21,24 @@ class PEEPServer(StackingProtocol):
         if isinstance(data_packet, PEEPPacket):
             if self._state == 0:
                 if data_packet.Type == 0:
-                    self.handshake_synack(data_packet)
-                    self._timeout_handler = asyncio.get_event_loop().call_later(PEEPServer.TIMEOUT_SECONDS, self.forcefully_termination)
+                    self.handshake_syn_received(data_packet)
+                    self._timeout_handler = asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.forcefully_termination)
                 else:
                     print('PEEP server is waiting for a SYN packet')
             elif self._state == 1:
                 if data_packet.Type == 2:
                     self._timeout_handler.cancel()
-                    self.higher_protocol_connection_made(data_packet)
+                    self.handshake_ack_received(data_packet)
                 else:
                     print('PEEP server is waiting for a ACK packet')
             elif self._state == 2:
-                data_field = data_packet.Data
-                self.higherProtocol().data_received(data_field)
+                if data_packet.Type == 2:
+                    self.ack_received(data_packet)
+                elif data_packet.Type == 5:
+                    self.data_packet_received(data_packet)
+                else:
+                    print('PEEP server is waiting for a ACK/DATA packet')
+
             else:
                 raise ValueError('PEEP server wrong state')
         else:
@@ -47,22 +47,24 @@ class PEEPServer(StackingProtocol):
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
 
-    def handshake_synack(self, data_packet):
+    def handshake_syn_received(self, data_packet):
         if data_packet.verifyChecksum():
             print('PEEP server received SYN.')
             handshake_packet = PEEPPacket.Create_SYN_ACK(data_packet.SequenceNumber)
             self.transport.write(handshake_packet.__serialize__())
-            print('PEEP server sent SYN-ACK')
-            self._sequence_number = handshake_packet.SequenceNumber
+            print('PEEP server sent SYN-ACK with seq num %s' % handshake_packet.SequenceNumber)
+            self._seq_num_for_handshake = handshake_packet.SequenceNumber
             self._state = 1
+            self._seq_num_for_next_expected_packet = handshake_packet.Acknowledgement
+            print('expected next pack with seq num %s' % self._seq_num_for_next_expected_packet)
         else:
             print('SYN incorrect checksum.')
 
-    def higher_protocol_connection_made(self, data_packet):
+    def handshake_ack_received(self, data_packet):
         if data_packet.verifyChecksum():
-            if data_packet.Acknowledgement == self._sequence_number + 1:
+            if data_packet.Acknowledgement == self._seq_num_for_handshake + 1:
                 print('PEEP Server received ACK')
-                self.higherProtocol().connection_made(PEEPTransport(self.transport, self._sequence_number))
+                self.higherProtocol().connection_made(PEEPTransport(self.transport, self))
                 self._state = 2
             else:
                 print('Incorrect sequence number.')
