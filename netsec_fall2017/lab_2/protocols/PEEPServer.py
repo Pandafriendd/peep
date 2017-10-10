@@ -103,6 +103,8 @@ class PEEPServer(StackingProtocol):
 
     def send_ack(self):
         print('PEEP server send ACK.')
+        print(self._other_seq_number)
+        print('---------------------')
         ack_packet = PEEPPacket.Create_ACK(self._other_seq_number, self._sequence_number)
         self.transport.write(ack_packet.__serialize__())
 
@@ -117,17 +119,19 @@ class PEEPServer(StackingProtocol):
 
     def reorder_packet(self, data_packet):
         if data_packet.verifyChecksum():
-            # print('PEEP server received data packet ---- reorder_packet')
+            print('PEEP server received data packet ---- reorder_packet')
             if data_packet.SequenceNumber == self._other_seq_number:
+                self._other_seq_number += len(data_packet.Data)
+                print("other_seq_number")
+                print(self._other_seq_number)
                 self.send_ack()
                 self.higherProtocol().data_received(data_packet.Data)
-                self._other_seq_number += len(data_packet.Data)
             elif data_packet.SequenceNumber > self._other_seq_number:
-                self.send_ack()
+                # self.send_ack()
                 heapq.heappush(self._receive_list, (data_packet.SequenceNumber, data_packet))
-                # print('data_packet.SequenceNumber > self._other_seq_number')
-                # print(data_packet.SequenceNumber)
-                # print(self._other_seq_number)
+                print('data_packet.SequenceNumber > self._other_seq_number')
+                print(data_packet.SequenceNumber)
+                print(self._other_seq_number)
             else:
                 print('received a packet again')
 

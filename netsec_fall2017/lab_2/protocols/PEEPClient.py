@@ -89,6 +89,8 @@ class PEEPClient(StackingProtocol):
         if len(self._passed_list) < PEEPClient.P_WINDOW:
             heapq.heappush(self._passed_list, (packet.SequenceNumber, packet))
             self._sequence_number += len(packet.Data)
+            print("send packet number is ")
+            print(packet.SequenceNumber)
             self.transport.write(packet.__serialize__())
             # print('pass_packet send packet')
         else:
@@ -109,7 +111,7 @@ class PEEPClient(StackingProtocol):
 
     def ack_received(self, data_packet):
         if data_packet.verifyChecksum():
-            # print('PEEP client received data ack packet')
+            print('PEEP client received data ack packet')
             while self._passed_list[0] < data_packet.Acknowledgement:
                 heapq.heappop(self._passed_list)
                 self.send_backlog()
@@ -126,6 +128,7 @@ class PEEPClient(StackingProtocol):
             elif data_packet.SequenceNumber > self._other_seq_number:
                 self.send_ack()
                 heapq.heappush(self._receive_list, (data_packet.SequenceNumber, data_packet))
+                print('push end')
 
     def ret_sequencenum(self):
         return self._sequence_number
