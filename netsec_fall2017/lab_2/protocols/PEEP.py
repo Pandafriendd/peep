@@ -36,12 +36,11 @@ class PEEP(StackingProtocol):
                 if len(self._backlog_buffer) > 0:
                     chunk, self._backlog_buffer = self._backlog_buffer[:DATA_FIELD_SIZE], self._backlog_buffer[DATA_FIELD_SIZE:]
                     data_packet_for_backlog = PEEPPacket.Create_DATA(self._seq_num_for_last_packet, chunk, self._size_for_last_packet)
-                    data_packet_for_backlog_bytes = data_packet_for_backlog.__serialize__()
-                    self.transport.write(data_packet_for_backlog_bytes)
+                    self.transport.write(data_packet_for_backlog.__serialize__())
                     print('sent a data packet from backlog with seq num %s' % data_packet_for_backlog.SequenceNumber)
                     heapq.heappush(self._retransmission_heap, data_packet_for_backlog)
                     self._seq_num_for_last_packet = data_packet_for_backlog.SequenceNumber
-                    self._size_for_last_packet = len(data_packet_for_backlog_bytes)
+                    self._size_for_last_packet = len(chunk)
         else:
             print('received a ack packet with incorrect checksum')
 
@@ -52,15 +51,16 @@ class PEEP(StackingProtocol):
                 # ------ higher protocol data received ------
                 self.higherProtocol().data_received(data_packet.Data)
                 # -------------------------------------------
-                self._seq_num_for_next_expected_packet += len(data_packet.__serialize__())
+                self._seq_num_for_next_expected_packet += len(data_packet.Data)
                 # check disordered packets heap whether there exists extra packets can be transmitted
                 while len(self._disordered_packets_heap) > 0 and self._disordered_packets_heap[0].SequenceNumber == self._seq_num_for_next_expected_packet:
                     next_packet = heapq.heappop(self._disordered_packets_heap)
                     self.higherProtocol().data_received(next_packet.Data)
-                    self._seq_num_for_next_expected_packet += len(next_packet.__serialize__())
+                    self._seq_num_for_next_expected_packet += len(next_packet.Data)
 
             else:
-                heapq.heappush(self._disordered_packets_heap, data_packet)
+                if data_packet not in self._disordered_packets_heap:
+                    heapq.heappush(self._disordered_packets_heap, data_packet)
         else:
             print('received a data packet with incorrect checksum')
         # ------ send ack ------
@@ -76,14 +76,13 @@ class PEEP(StackingProtocol):
             while len(data_buffer) > 0 and len(self._retransmission_heap) < WINDOW:
                 chunk, data_buffer = data_buffer[:DATA_FIELD_SIZE], data_buffer[DATA_FIELD_SIZE:]
                 data_chunk_packet = PEEPPacket.Create_DATA(self._seq_num_for_last_packet or self._seq_num_for_handshake, chunk, self._size_for_last_packet)
-                data_chunk_packet_bytes = data_chunk_packet.__serialize__()
                 # ------ transport write ------
-                self.transport.write(data_chunk_packet_bytes)
+                self.transport.write(data_chunk_packet.__serialize__())
                 print('sent a data packet with seq num %s' % data_chunk_packet.SequenceNumber)
                 # -----------------------------
                 heapq.heappush(self._retransmission_heap, data_chunk_packet)
                 self._seq_num_for_last_packet = data_chunk_packet.SequenceNumber
-                self._size_for_last_packet = len(data_chunk_packet_bytes)
+                self._size_for_last_packet = len(chunk)
 
             if len(data_buffer) > 0:
                 self._backlog_buffer += data_buffer
