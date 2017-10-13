@@ -94,13 +94,15 @@ class PEEPClient(StackingProtocol):
             self.transport.write(packet.__serialize__())
             # print('pass_packet send packet')
         else:
-            heapq.heappush(self._backlog_list, (packet.SequenceNumber, packet))
+            # heapq.heappush(self._backlog_list, (packet.SequenceNumber, packet))
             # print('save in the backlog----', packet.SequenceNumber)
+            self._backlog_list.append((packet.SequenceNumber, packet))
             print('the backlog package is that ------------------', len(self._backlog_list))
 
     def send_backlog(self):
         while len(self._passed_list) < 5 and len(self._backlog_list) > 0:
-            (seq, packet) = heapq.heappop(self._backlog_list)
+            (seq, packet) = self._backlog_list[0]
+            del self._backlog_list[0]
             heapq.heappush(self._passed_list, (seq, packet))
             self._sequence_number += len(packet.Data)
             print('send backlog package -----', packet.SequenceNumber)
@@ -116,7 +118,7 @@ class PEEPClient(StackingProtocol):
             print('PEEP client received data ack packet')
             while self._passed_list[0][0] < data_packet.Acknowledgement:
                 heapq.heappop(self._passed_list)
-                self.send_backlog()
+                # self.send_backlog()
                 print('the current waiting for reply heap is ', len(self._passed_list))
                 print('the current waiting for send heap in the backlog area is ', len(self._backlog_list))
         else:
