@@ -30,27 +30,27 @@ class PEEPClient(StackingProtocol):
         self.handshake_syn()
 
     def data_received(self, data):
-        data_packet = packet_deserialize(self._deserializer, data)
-        # print("client received data----data_received")
-        if isinstance(data_packet, PEEPPacket):
-            if self._state == 1:
-                if data_packet.Type == 1:
-                    # self._timeout_handler.cancel()
-                    self.handshake_ack(data_packet)
-                    self.higherProtocol().connection_made(PEEPTransport(self.transport, self))
+        self._deserializer.update(data)
+        for data_packet in self._deserializer.nextPackets():
+            if isinstance(data_packet, PEEPPacket):
+                if self._state == 1:
+                    if data_packet.Type == 1:
+                        # self._timeout_handler.cancel()
+                        self.handshake_ack(data_packet)
+                        self.higherProtocol().connection_made(PEEPTransport(self.transport, self))
+                    else:
+                        print('PEEP client is waiting for a SYN-ACK packet.')
+                elif self._state == 2:
+                    if data_packet.Type == 2:
+                        # self._timeout_handler.cancel()
+                        self.ack_received(data_packet)
+                    elif data_packet.Type == 5:
+                        # self._timeout_handler.cancel()
+                        self.reorder_packet(data_packet)
                 else:
-                    print('PEEP client is waiting for a SYN-ACK packet.')
-            elif self._state == 2:
-                if data_packet.Type == 2:
-                    # self._timeout_handler.cancel()
-                    self.ack_received(data_packet)
-                elif data_packet.Type == 5:
-                    # self._timeout_handler.cancel()
-                    self.reorder_packet(data_packet)
+                    raise ValueError('PEEP client wrong state.')
             else:
-                raise ValueError('PEEP client wrong state.')
-        else:
-            print('PEEP client is waiting for a PEEP packet.')
+                print('PEEP client is waiting for a PEEP packet.')
 
     def connection_lost(self, exc):
         self.higherProtocol().connection_lost(exc)
@@ -85,23 +85,25 @@ class PEEPClient(StackingProtocol):
             raise ValueError('SYN-ACK incorrect checksum.')
 
     def pass_packet(self, packet):
-        # print('pass_packet received packet')
+        print('pass_packet received packet-------------------------------------------------------')
         if len(self._passed_list) < PEEPClient.P_WINDOW:
             heapq.heappush(self._passed_list, (packet.SequenceNumber, packet))
             self._sequence_number += len(packet.Data)
-            print("send packet number is ")
-            print(packet.SequenceNumber)
+            print("send packet number is ", packet.SequenceNumber)
+            print("the current waiting for reply heap is ", len(self._passed_list))
             self.transport.write(packet.__serialize__())
             # print('pass_packet send packet')
         else:
-            # print('pass_packet not --- send packet')
             heapq.heappush(self._backlog_list, (packet.SequenceNumber, packet))
+            # print('save in the backlog----', packet.SequenceNumber)
+            print('the backlog package is that ------------------', len(self._backlog_list))
 
     def send_backlog(self):
         while len(self._passed_list) < 5 and len(self._backlog_list) > 0:
             (seq, packet) = heapq.heappop(self._backlog_list)
-            heapq.heappush(self._passed_list, (packet.SequenceNumber, packet))
+            heapq.heappush(self._passed_list, (seq, packet))
             self._sequence_number += len(packet.Data)
+            print('send backlog package -----', packet.SequenceNumber)
             self.transport.write(packet.__serialize__())
 
     def send_ack(self):
@@ -112,9 +114,11 @@ class PEEPClient(StackingProtocol):
     def ack_received(self, data_packet):
         if data_packet.verifyChecksum():
             print('PEEP client received data ack packet')
-            while self._passed_list[0] < data_packet.Acknowledgement:
+            while self._passed_list[0][0] < data_packet.Acknowledgement:
                 heapq.heappop(self._passed_list)
                 self.send_backlog()
+                print('the current waiting for reply heap is ', len(self._passed_list))
+                print('the current waiting for send heap in the backlog area is ', len(self._backlog_list))
         else:
             print("ack check sum is not valid")
 

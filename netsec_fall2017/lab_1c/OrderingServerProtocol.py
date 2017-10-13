@@ -6,6 +6,7 @@ from ..mypackets import RequestMenu, Menu, Order, Result
 from ..mypackets import init_packet
 
 
+
 class OrderingServerProtocol(asyncio.Protocol):
     ORDER_NUMBER = 0
 
@@ -60,8 +61,7 @@ class OrderingServerProtocol(asyncio.Protocol):
         self.deserializer.update(data)
         print(data)
         for pkt in deserializer.nextPackets():
-            print("got")
-            print(pkt)
+            print("got package +++++++++++++++++++",pkt)
 
     def connection_lost(self, exc):
         print('Server connection lost')
