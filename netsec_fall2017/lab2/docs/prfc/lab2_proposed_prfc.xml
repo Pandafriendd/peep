@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+
+
+<!ENTITY RFC0793 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.0793.xml">
+<!ENTITY RFC2629 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2629.xml">
+<!ENTITY RFC3552 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.3552.xml">
+<!ENTITY RFC5226 SYSTEM "http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5226.xml">
+]>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<?rfc strict="yes" ?>
+<!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC) -->
+<?rfc toc="yes"?>
+<!-- generate a ToC -->
+<?rfc tocdepth="4"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<!-- control references -->
+<?rfc symrefs="yes"?>
+<!-- use symbolic references tags, i.e, [RFC2119] instead of [1] -->
+<?rfc sortrefs="yes" ?>
+<!-- sort the reference entries alphabetically -->
+<!-- control vertical white space 
+    (using these PIs as follows is recommended by the RFC Editor) -->
+<?rfc compact="yes" ?>
+<!-- do not start each main section on a new page -->
+<?rfc subcompact="no" ?>
+<!-- keep one blank line between list items -->
+<!-- end of list of popular I-D processing instructions -->
+<rfc category="std" docName="prfc2" ipr="playgroundStd_v1_0" number="2">
+    <front>
+        <title abbrev="PRFC's">Playground Request For Comments</title>
+        <author fullname="Qiyang Gu" role="editor" surname="Gu">
+            <organization>JHU Network Security Fall 2017</organization>
+            <address>
+                <phone>+1 443-939-5604</phone>
+                <email>qiyanggu@jhu.edu</email>
+            </address>
+        </author>
+        <author fullname="Binjie Li" surname="Li">
+            <organization>JHU Network Security Fall 2017</organization>
+            <address>
+                <phone>+1 443-563-8366</phone>
+                <email>bli38@jhu.edu</email>
+            </address>
+        </author>
+        <author fullname="Zhiyuan Li" surname="Li">
+            <organization>JHU Network Security Fall 2017</organization>
+            <address>
+                <phone>+1 443-531-9661</phone>
+                <email>zli108@jhu.edu</email>
+            </address>
+        </author>
+        <author fullname="Qinmeng Qi" surname="Qin">
+            <organization>JHU Network Security Fall 2017</organization>
+            <address>
+                <phone>+1 443-938-6891</phone>
+                <email>mqin2@jhu.edu</email>
+            </address>
+        </author>
+        <author fullname="Yiming Xie" surname="Xie">
+            <organization>JHU Network Security Fall 2017</organization>
+            <address>
+                <phone>+1 443-635-9868</phone>
+                <email>yxie32@jh.edu</email>
+            </address>
+        </author>
+        <date year="2017" />
+        <area>General</area>
+        <workgroup>Playground Experiment Director</workgroup>
+        <keyword>PRFC</keyword>
+        <abstract>
+            <t>The PEEP (Players Enjoy Eavesdropping Protocol) is designed to provide a reliable, secure, connection-oriented transport layer mechanism for application layer and Playground. This PRFC specifies the architecture and detailed implementations of PEEP.</t>
+        </abstract>
+    </front>
+    <middle>
+        <section title="INTRODUCTION">
+            <t>The Players Enjoy Eavesdropping Protocol (PEEP) is intended for use as a highly reliable host-to-host protocol between hosts in packet-switched computer communication networks, and in interconnected systems of such networks.</t>
+
+            <t>This document describes the functions to be performed by the Players Enjoy Eavesdropping Protocol, the idea that designs it, the program that implements it, and its interface to the upper applications, programs, or the users that require its services.</t>
+
+            <t>The format of this document, as well as many terminologies in this document, is referred to Requests for Comments: 793 Transmission Control Protocol.<xref target="RFC0793"></xref> Also, the implementations of PEEP are based on the implementations of Transmission Control Protocol.</t>
+
+            <section title="Motivation">
+                <t>The purpose of the PEEP is to provide means of interconnecting computer communication networks and to provide standard interprocess communication protocols which can support a broad range of applications. The name Players Enjoy Eavesdropping Protocol shows that this protocol is designed not only for the communication of applications but also for providing an approach to learn the security issues in the computer networks.</t>
+
+                <t>PEEP is a connection-oriented, end-to-end reliable protocol designed to fit into a layered hierarchy of protocols. The PEEP fits into a layered protocol architecture just above the Playground overlay network, which provides a way for PEEP to send and receive data packets that encapsulated by the Playground. The Playground network that under the PEEP can be considered as a typical local area network. To access the Playground network, we will need a Virtual Network Interface Card(VNIC) to provide connectivity to the network.</t>
+                <figure align="center" title="Protocol Layering">
+                    <artwork align="center"><![CDATA[
++----------------------------+
+|         Higher-Layer       |
++----------------------------+
+|            PEEP            |
++----------------------------+
+|  Playground Wire Protocol  |
++----------------------------+
+|    Lower-Layer Network     |
++----------------------------+
+                    ]]></artwork>
+                </figure>
+
+            </section>
+            <section title="Scope">
+                <t>The PEEP is intended to provide a reliable process-to-process communication service above the Playground framework. The PEEP is intended to be a host-to-host protocol in common use.</t>
+            </section>
+            <section title="About this Document">
+                <t>This document represents a specification of the behavior required of any PEEP implementation, both in its interactions with higher level protocols and in its interactions with other PEEPs. The rest of this section offers a very brief view of the protocol interfaces and operation. Section 2 summarizes the philosophical basis for the PEEP design. Section 3 offers a detailed and thorough description of the actions required of the PEEP when various events occur (arrival of new packets, the arrival of out-of-order packets, the arrival of damaged packets, etc.) and the details of the formats of PEEP packets.</t>
+            </section>
+            <section title="Interfaces">
+                <t>The PEEP interfaces on one side to higher level protocol and on the other side to lower level protocol such as Playground wire protocol.</t>
+
+                <t>The interface between higher level protocol and the PEEP consists of a set of calls. For example, there are calls to make or close connections and to send and receive data on established connections. And the PEEP is also implemented asynchronously that allowing the higher level protocol to call the interface functions asynchronously, which means that when higher protocol to the user the interfaces to make a connection, a specific PEEP protocol will be created to handle this connection. When implementing the PEEP interface, there is a minimum functionality that required for all the PEEP implementors to ensure that the PEEP interfaces are meet the minimum functional requirements.</t>
+
+                <t>The interface between PEEP and lower level protocol, Playground wire protocol, is essentially unspecified except that it is assumed there is a mechanism whereby the two levels can asynchronously pass information to each other. The PEEP is designed to work in a very general environment of interconnected networks.</t>
+            </section>
+            <section title="Operation">
+                <t>As noted above, the primary purpose of the PEEP is to provide reliable connection service between pairs of processes. To provide this service on top of a less reliable network communication system requires facilities in following areas:
+                    <list style="empty">
+                        <t>Basic Data Transfer</t>
+                        <t>Reliability</t>
+                        <t>Connections</t>
+                    </list>
+                </t>
+                <t>The basic operation of the PEEP in each of these areas is described in the following paragraphs.
+
+                    <list style="empty">
+                        <t>Basic Data Transfer: <vspace blankLines="1"></vspace>
+                        The PEEP is able to transfer a continuous stream of bytes of packets in each direction between its users by packaging some number of outlets into packets for transmission through the internet system. In other words, the PEEP provides users with a basic service of data transmission that allows both sides can exchange data. A continuous stream of bytes that are passed to PEEP will be divided into different chunks that each chunk has the same bytes.
+                        </t>
+                        <t>Reliability: <vspace blankLines="1"></vspace>
+                        The PEEP must recover from data that is damaged, lost, duplicated, or delivered out of order by the internet communication system. This is achieved by assigning a sequence number to each PEEP packet transmitted and requiring a positive acknowledgment (ACK) from the receiving PEEP. If the ACK is not received within a timeout interval, the data is retransmitted. At the receiver, the sequence numbers are used to correctly order packets that may be received out of order and to eliminate duplicates. Damage is handled by adding a checksum to each packet transmitted, checking it at the receiver, and discarding damaged packets. Notes that the checksum only can identify the damage packets result from unintentional and natural damage during the transmission process, not the intentional modified or damaged packets.
+                        <vspace></vspace>
+                        As long as the PEEPs continue to function properly and the internet system does not become completely partitioned, no transmission errors will affect the correct delivery of data. PEEP recovers from internet communication system errors.
+                        </t>
+                        <t>Connections: <vspace blankLines="1"></vspace>
+                        The reliability mechanisms require that PEEPs initialize and maintain certain status information for each data stream. The combination of this information, including sequence numbers, slice window, is called a connection. Each connection is uniquely specified by sessions identifying its two sides.
+                        <vspace></vspace>
+                        When two processes wish to communicate, their PEEP's must first establish a connection (initialize the status information on each side). When their communication is complete, the connection is terminated or closed to free the resources for other uses.
+                        <vspace></vspace>
+                        Since connections must be established between unreliable hosts and over the unreliable internet communication system, a handshake mechanism with clock-based sequence numbers is used to avoid erroneous initialization of connections.
+                        </t>
+                    </list>
+                </t>
+            </section>
+        </section>
+        <section title="PHILOSOPHY">
+            
+            <section title="Elements of the Internetwork System">
+                <t>The environment consists of hosts connected to networks. Here, it is assumed that the networks may be local networks or virtual networks(e.g. class VM). Besides, the networks are based on packet switching. The Internetwork system provides two-way data flow between ports.</t>
+
+                <t>The packet is used to transmit data between ports. The format of data blocks will be wrapped in the PEEP. Thus, we do not concern the format.</t>
+
+                <t>Hosts are the sources and destinations of packets. We can send and receive packets what we need via hosts.</t>
+            </section>
+            <section title="Model of Operation">
+                <t>In this process, data is transmitted by calling on the PEEP and passing buffers. The PEEP packages the buffers into segments and calls on the playground module to transmit them. When the receivers receive the buffer, the receivers will notify the sender. In the transmission, the PEEP ensures these segments are ordered.</t>
+                <t>The playground module packages PEEP segments inside datagrams and transmit these datagrams to the destination module.</t>
+            </section>
+            <section title="Interfaces">
+                <t>The PEEP/user interface provides for calls made by the user on the PEEP to OPEN or CLOSE a connection, to SEND or RECEIVE data.</t>
+                <t>The PEEP/lower protocol interface provides calls to send and receive datagrams addressed to PEEP in hosts in the virtual environment. These calls have parameters for passing the address, security and other control information.</t>
+            </section>
+
+            <section title="Relation to Other Protocols">
+                <t>In the following, the diagram illustrates the place of the PEEP:</t>
+                <figure align="center" title="Protocol Relationships">
+                    <artwork align="center"><![CDATA[
+    +------+  +------+
+    |client|  |server|          Application Level
+    +------+  +------+
+        |         | 
+    +------+  +------+
+    | PEEP |  | PEEP |          PEEP Level
+    +------+  +------+
+        |         |
++------------------------+
+|        Playground      |      Lower Level 
++------------------------+     
+                    ]]></artwork>
+                </figure>
+                <t>It is expected that the PEEP will have the ability to support higher level protocols.</t>
+            </section>
+
+            <section title="Reliable Communication">
+                <t>A stream of data sent on a PEEP connection is delivered reliably and in order at the destination.</t>
+                
+                <t>Transmission is made reliable via the use of sequence numbers and acknowledgments. The sequence number of the first octet of data in a segment is transmitted with that segment and is called the segment sequence number. When a segment is received, the receiver will return an acknowledgement number which is the sequence number of its next expected data. When the PEEP transmits a segment containing data, it puts a copy on a retransmission heap and starts a timer; when the acknowledgment for that data is received, the segment is deleted from the heap. If the acknowledgment is not received before the timer runs out, the segment is retransmitted.</t>
+
+                <t>To govern the flow of data between PEEPs, a fixed-size "window" is set to identify the maximum numbers of segments that can be transmitted at a time.</t>
+            </section>
+
+            <section title="Connection Establishment and Clearing">
+                <t>The procedures to establish connections utilize the synchronize(SYN) control flag and involves an exchange of three messages.  This exchange has been termed a three-way handshake. When the sequence numbers have been synchronized in both directions, the connection is established.
+                </t>
+
+                <t>The clearing of a connection also involves the exchange of segments.</t>
+            </section>
+
+            <section title="Data Communication">
+                <t>The data flow on the connection can be considered as a stream of the buffer. A sending PEEP is allowed to collect data from the sending user and to send that data in segments at its own convenience.</t>
+            </section>
+            <section title="Robustness Principle">
+                <t>PEEP implementation will follow one general principle of robustness which followed by TCP:  be conservative in what you do, be liberal in what you accept from others.
+                </t>
+            </section>
+        </section>
+
+        <section title="FUNCTIONAL SPECIFICATION">
+            <section title="Packet Type">
+                <t>The packet used for transmitting through PEEP is defined as the followings. The packet includes information fields type, sequence number, acknowledgement, checksum, and data.</t>
+                <figure align="center" title="PPEP Header Format">
+                    <artwork align="center"><![CDATA[
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|      Type     |                   Padding                     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Sequence Number                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Acknowledgment Number                      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           Checksum            |            Padding            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                             data                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                    ]]></artwork>
+                </figure>
+                <t>Each tick mark represents a bit position.</t>
+                <t>Type: 8 bits</t>
+                <t>Type indicates the type of a packet. Type 0 indicates a SYN packet, Type 1 indicating a SYN-ACK packet, Type 2 indicating a ACK packet, Type 3 indicating a RIP packet, Type 4 indicating a RIP-ACK packet, Type 5 indicating a Data packet.</t>
+                <t>Sequence Number: 32 bits</t>
+                <t>Each packet has its sequence number to set the packets in order.</t>
+                <t>Acknowledgment Number: 32 bits</t>
+                <t>Each time a packet is received, the receiver will send back an acknowledgement. Acknowledgement number is always the sequence number it is expecting to receive.</t>
+                <t>Checksum: 16 bits</t>
+                <t>The checksum is used to detect if the packet is completely received. The sender calculates the checksum before sending the packet and sends it alone with the packet. When the receiver receives the packet, it calculates the checksum with the same calculation and compares the two checksum numbers. If they are different, the receiver discards the packet.</t>
+                <t>Data</t>
+                <t>Data includes the actual data buffer from a higher layer.</t>
+            </section>
+
+            <section title="Computational Algorithms">
+                <t><list>
+                    <t>Generation of Sequence number: <vspace blankLines="1"></vspace>The first sequence number is an integer (SYN's sequence number) generated randomly from 0 to 2 to the 16. The following sequence number is calculated by adding the sequence number and the length of the data in the last packet.</t>
+                    <t>Generation of Acknowledgement number: <vspace blankLines="1"></vspace>The acknowledgement number is equal to the sequence number for the receiver's next expecting packet.</t>
+                    <t>Generation of Checksum: <vspace blankLines="1"></vspace>The checksum for a packet is calculated by a Python library called zlib. An Adler-32 checksum algorithm is provided by zlib.</t>
+                </list></t>
+            </section>
+
+            <section title="Transition States">
+                <t>The figure below indicates the transition states according to the segments received and sent.</t>
+                <figure align="center" title="Transition States">
+                    <artwork align="center"><![CDATA[
+                      +---------------+
+                      |    CLOSED     |
+                      +----+-----+----+
+                           |     |
+                    SENT IN|     |  RECV INI, SENT INI/ACK
+                           v     v
+                      +---------------+
+                      |    LISTEN     |
+                      +----+-----+----+
+                           |     |
+     +---------------+     |     |       +---------------+
+     | INITIATE SENT | ^---+     +------^| INITIATE RECV |
+     |               | <---------------- |               | 
+     +----+------+---+   RECV/SENT ACK   +-------------+-+ 
+          |      |                                     |
+          |      | SENT ACK                   SENT ACK |
+TERMINATE |      |       +---------------+             |
+          |      +-----> |   CONNECTED   | <-----------+
+          |              +----+-----+----+
+          |                   |     |
+          v   CLOSE, SENT RIP |     |RECV RIP, SENT ACK
+     +-----------------+      |     |           +------------+
+     |    RIP WAIT-1   | <----+     +---------> | CLOSE WAIT |
+     +----+-------+----+                        +---------+--+
+          |       |                                       |
+          |       +----------------+SENT ACK, RECV RIP    | CLOSE
+          | RECV ACK               |                      |
+          v                        v                      v
+ +------------------+      +-------+------+      +--------+------+
+ |     RIP WAIT-2   |      |   CLOSING    |      | LAST-ACK RECV |
+ +------------------+      +-------+------+      +-------+-------+
+          |                        |                     |
+          |RECV RIP, SENT ACK      |RECV ACK             |RECV ACK
+          |                        v                     v
+          |           +---------------+      +---------------+
+          +---------> |   TIME WAIT   | ---->|    CLOSED     |
+                      +---------------+      +---------------+ 
+                    ]]></artwork>
+                </figure>
+                <t><list>
+                    <t>LISTEN: This state is to be maintained by the receiver (server) while listening for a connection on any PEEP port and IP address</t>
+                    <t>INITIATE SENT: This state is to be maintained by the sender (client) after it starts a three-way handshake in which it sends an SYN and waits for an ACK back.</t>
+                    <t>INITIATE RECV: This state is to be maintained by the receiver (server) after it sends an SYN-ACK and waits for the sender's ACK.</t>
+                    <t>CONNECTED: This state is to be maintained by both sides after the handshake is successfully initialized. Both server and client is ready to transmit data.</t>
+                    <t>RIP WAIT-1: This state is to be maintained by the sender in which it waits for a connection termination request from the receiver, or an acknowledgment of the connection termination request previously sent.</t>
+                    <t>RIP WAIT-2: This state is to be maintained by the sender in which it waits for a connection termination request from the receiver.</t>
+                    <t>CLOSE WAIT: This state is to be maintained by the receiver in which it waits for a connection termination request from the local user.</t>
+                    <t>CLOSING: This state is to be maintained by the sender in which it waits for a connection termination ACK from the receiver.</t>
+                    <t>LAST-ACK RECV: This state is to be maintained by the receiver in which it waits for an ACK of the connection termination request previously sent to the sender.</t>
+                    <t>TIME WAIT: This state is to be maintained by the receiver in which it waits for enough time to assure its ACK has been sent to the sender.</t>
+                    <t>CLOSED: This state means there exists no connection. Both sides has been closed.</t>
+                </list></t>
+            </section>
+            <section title="Establishing a connection">
+                <t>The three-way handshake similar to TCP is used to establish the connection between two sides. </t>
+
+                <t>Before starting the process, the client side is closed and the server side is listening and waiting for incoming packets. To establish a connection, the client side PEEP  (refers as PEEPClient) first sends a SYN packet including its sequence number x. When the sever side PEEP (refers as PEEPServer) sends back a SYN-ACK packet to PEEPClient. The packet includes its sequence number y as well as the acknowledgement which is the client side packet's sequence number plus one (x+1). The acknowledgement is also the sequence number of the packet it is expected to receive. After the PEEPClient receives the SYN-ACK packet, it calls its higher protocols to make a connection. The PEEPClient also sends back an ACK packet to PEEPServer. The packets include its updated sequence number (x+1) and acknowledgement y+1. Notice that the sequence number here is the same with the SYN-ACK packet's acknowledgement, which means the PEEPClient sends the packet the PEEPServer is expected. When the PEEPServer receives this packet, it calls its higher protocols to make a connection. If either packet in this process is not received, the connection cannot be established. After the three-way handshake, the whole connection is made and packets can be sent and received by both sides through the Playground.</t>
+            </section>
+            <section title="Data transmission">
+                <t>The two parts of connection achieved data transmission by exchanging segments with each other. The segments may be lost due to different errors, like checksum test failure, network congestion. The PEEP implements a retransmit mechanism to ensure no error transmission. Duplicate segments maybe arrived due to network and PEEP packet retransmit. In this situation, PEEP could distinguish the duplicate data by identifying the sequence number and decide whether to receive data and send an ACK packet.</t>
+
+                <t>For every packet sent through the protocol, it always has a sequence number. Each packet is sequenced by this sequence number and can be acknowledged. When one side protocol receives a sequence number, it always sends back an acknowledgment X which is the next packet's sequence number it is expected to receive. The acknowledgment represents the data octets up to but not including the sequence number X. So the next packet it received should be sequence number X. It will prevent duplicate and disorder of packets to some extent. We pick the initial sequence number randomly from 0 to 2^16 to sequence the packets, the sequence number is never infinite, when programming, we should consider the valuable sequence number to count.</t>
+
+                <t>There are some kinds of comparison needs to be included.</t>
+
+                <t><list style="numbers">
+                    <t>Acknowledgement always refers to the sequence number sent but not acknowledged yet.</t>
+                    <t>All sequence numbers are acknowledged if sent successfully.</t>
+                    <t>The incoming packet's sequence number is always expected as the previous acknowledged.</t>
+                </list></t>
+
+                <t>In each packet transmission, it always has a sender's sequence number and a receiver's sequence number. In our program, we randomly pick the initial sequence number for each side, the client, and server, and the following packet's sequence number of the same side will be defined based on the data size. To establish the connection, the two sides exchanged the sequence number, which is stored in the SYN by sending back the acknowledgment. The packets are sequenced based on this sequence number so that disorder and lots of packets can be detected. To be more specific, we use the arrows to represents the packets sent along these two sides:</t>
+
+                <t><list style="numbers">
+                    <t>Client-Server SYN with sequence number X.</t>
+                    <t>Server Client ACK acknowledge receiving sequence number X SYN with sequence number Y.</t>
+                    <t>Client-Server ACK acknowledge receiving sequence number Y</t>
+                </list></t>
+
+                <t>This can be treated as the "three-way handshake". After these three ways to exchange packets, a connection can be established. It's necessary because the server will not know which packet is actually working and may cause chaos. Details of this "three-way handshake" will be introduced in next paragraph.</t>
+
+                <t>In the data Transmission, the data sender keeps track of the next sequence number, and save it base on the local variable "_size_for_last_packet" and "_seq_num_for_last_packet". The data receiver keeps track of the next sequence number to expect in its local variable "_seq_num_for_next_expected_packet". The sender of data keeps saves the oldest unacknowledged packet in its variable heap "_disordered_packets_heap". If the data flow is momentarily idle and all data sent has been acknowledged then the three variables will be equal.</t>
+
+                <t>When data sender transmits a new packet, it will update its variable "_size_for_last_packet" and "_seq_num_for_last_packet" value, and it will preserve it as an unacknowledged packet in its list "_disordered_packets_heap". On the other side, when the receiver gets the new packet, it will update its "_seq_num_for_next_expected_packet", the process that data packet and send an ACK packet to the data sender. And as the sender received the ACK packet from the receiver, it will update its heap "_disordered_packets_heap", by removing this packet form the heap. In the real data transmission, such sequence did not happen at the same time, there will be some delay because of the network states or other reason. And missing or bad packet will lead to the retransmission.</t>
+
+                <t>Retransmission timeout.</t>
+
+                <t>In PEEP, the retransmission time is 5 seconds, it is set according to the experience. This retransmission time limit stays the same whenever the playground network condition changes.</t>
+
+                <t>There are the most common two conditions of data retransmission. </t>
+
+                <figure align="center">
+                    <artwork align="center"><![CDATA[
+Sender ------------- Data packet ----------> X Receiver 
+5 seconds later 
+Sender ------------- Data packet ------------> Receiver                    
+Sender <------------ Data packet ------------- Receiver                  
+                    ]]></artwork>
+                </figure>
+
+                <t>If the sender sends a packet, and it is being lost or compromised in the network, the receiver cannot give a response to this situation. And, after the sender waited for 5 seconds after it sends this data packet, it will automatically resend this packet to the receiver.</t>
+
+                <figure align="center">
+                    <artwork align="center"><![CDATA[
+Sender ------------- Data packet ------------> Receiver 
+Sender X <---------- Data packet ------------- Receiver                  
+5 seconds later 
+Sender ------------- Data packet ------------> Receiver                    
+Sender <------------ ACK packet ------------- Receiver                        
+                    ]]></artwork>
+                </figure>
+
+                <t>The second common situation is that the receiver got the packet from the sender, and send an ACK packet to reply the sender. However, this ACK packet may lose or compromised in the network. In this situation, the sender cannot receive the ACK packet, and it will resend the Data packet after 5 seconds. The server will reply to this resend packet, and resend ACK.</t>
+
+                <t>Managing the Window.</t>
+
+                <t>The window in PEEP protocol indicates the range of PEEP packet the sender is currently prepared to send without waiting for the ACK packet from the server. The max window size in PEEP is related to the buffer space available for this connection, and the network condition of the connection. </t>
+
+                <t>If the window is large, it will encourage data transmission. But when in some situation, it may exceed the capability of the server to handle the coming packet, and this may lead to a lot of retransmission. The extra load may be added to the network in this situation. On the other hand, if the window is too small, the sender may remain to do nothing until accepted the receiver reply ACK. In this case, the small window restricts the transmission efficiency.</t>
+
+                <t>In the PEEP protocol, we implement the static transmission window. Because the playground network environment is more stable and less fluctuate compare to the real network environment of TCP protocol. We could set the max window size based on our experience.</t>
+
+                <t>Window implementation.</t>
+
+                <t>Every time the sender would like to send a packet, it will check its unacknowledged heap "_disordered_packets_heap" to see if the heap has reached the max window size. If not, it will send the packet and preserve it in the heap "_disordered_packets_heap". Else, if the heap size is less than the max window value, the sender will save the packet in the backlog, and wait for the window to move forward.</t>
+
+                <t>Once the receiver received a packet, it will send an ACK to inform the sender the current state of the receiver. So that the sender will move the window forward, and pop the acknowledged packet out of "_disordered_packets_heap" heap.</t>
+            </section>
+            <section title="Closing a Connection">
+                <t>When the client cleans its buffer and gets ready to terminate the connection, it will send out a RIP packet with sequence number X to the server. And the server sends back a RIP-ACK packet with sequence number X+1. And then, the server side will clean its buffer and send back to the client a RIP packet with sequence number Y. Next, that when the client receives the RIP packet, it sent backs the last RIP-ACK packet with sequence number Y+1 and closes. The last step is that when the server received the RIP-ACK packet, it closes.</t>
+
+                <figure align="center" title="Connection Termination">
+                    <artwork align="center"><![CDATA[
+   PEEP Client                                         PEEP Server
+1.  ESTABLISHED                                        ESTABLISHED
+2.  (Close) 
+    RIP-WAIT-1 --> <SEQ=100><ACK=300><TYPE=3>    -->   CLOSE-WAIT
+3.  RIP-WAIT-2 <-- <SEQ=300><ACK=101><TYPE=4>    <--   CLOSE-WAIT
+4.                                                      (Close)
+    TIME-WAIT  <-- <SEQ=300><ACK=101><TYPE=3>    <--    LAST-ACK
+5.  TIME-WAIT  --> <SEQ=101><ACK=301><TYPE=4>    -->     CLOSED 
+6.  (2 MSL)
+    CLOSED                       
+                    ]]></artwork>
+                </figure>
+            </section>
+
+            <section title="Interfaces">
+                <t>The PEEP protocol provides interfaces for the upper protocol and the possible lower protocol. We will have a fairly elaborate model to discuss the upper-level/PEEP interface, but for the possible lower, we do not look into the details. And that may be discussed in the lower level protocol document.</t>
+
+                <t>Upper-level/PEEP Interface</t>
+
+                <t>The upper-level protocol commands described below specify the basic functions the PEEP must perform to support interprocess communication.</t>
+
+                <t><list>
+                    <t>Connection made: <vspace blankLines="1"></vspace>The PEEP protocol provides the interface to the upper level make connection method. The upper class passes the destination address and port, and the PEEP makes a connection with the PEEP in the other side. Once the connection is made, the PEEP will pass a PEEP transport to the upper level.</t>
+                    
+                    <t>Data sent: <vspace blankLines="1"></vspace>The PEEP protocol provides the interface to the upper-level data write method. The upper class passes the buffer stream to the PEEP and the PEEP chunked the buffer stream according to the pre-defined size. And transmit these data chunk to PEEP on the other side. If there is a lower level, it will receive the buffer stream from the PEEP. Once the data is written, the PEEP will get the data with PEEP transport on the upper level.<vspace blankLines="1"></vspace>In the data send, every data packet will be saved until the PEEP received the ACK packet from the receiver to report current needed packet. If this packet is already received by the other side, the sender will find out by analyzing the ACK number in the ACK packet. And it will retransmit some packet when the timeout happened.</t>
+
+                    <t>Data received: <vspace blankLines="1"></vspace>The PEEP protocol provides the interface to the upper-level data to the expect buffer stream of certain packets. Once the PEEP received data, which could be disordered, it will reorder the buffer stream base on their sequence number. Then PEEP connects the chunked buffer according to the right order, and it will pass the correct stream to the upper level. Once the data is re-ordered and connected, the PEEP will pass the data with calling the data_received function on the upper level.<vspace blankLines="1"></vspace>If there are some missing packet in the data re-order section, the PEEP in the receiver side will wait for the sender to pass the missing packet. Different ACK may be sent by the receiver, in which it only writes the missing packet's sequence number whenever what sequence number packet it received.</t>
+                </list></t>
+            </section>
+        </section>
+    </middle>
+    <!--  *****BACK MATTER ***** -->
+    <back>
+        <references title="Normative References">
+            &RFC0793;
+        </references>
+        <!-- Change Log
+
+v00 2006-03-15  EBD   Initial version
+
+v01 2006-04-03  EBD   Moved PI location back to position 1 -
+                     v3.1 of XMLmind is better with them at this location.
+v02 2007-03-07  AH    removed extraneous nested_list attribute,
+                     other minor corrections
+v03 2007-03-09  EBD   Added comments on null IANA sections and fixed heading capitalization.
+                     Modified comments around figure to reflect non-implementation of
+                     figure indent control.  Put in reference using anchor="DOMINATION".
+                     Fixed up the date specification comments to reflect current truth.
+v04 2007-03-09 AH     Major changes: shortened discussion of PIs,
+                     added discussion of rfc include.
+v05 2007-03-10 EBD    Added preamble to C program example to tell about ABNF and alternative 
+                     images. Removed meta-characters from comments (causes problems).
+
+v06 2010-04-01 TT     Changed ipr attribute values to latest ones. Changed date to
+                     year only, to be consistent with the comments. Updated the 
+                     IANA guidelines reference from the I-D to the finished RFC.  
+                     
+SETH NIELSON:
+  Altered for PLAYGROUND AND PRFC's
+  2016-09-21 SJN PRFC 1
+
+  Updated for Fall 2017
+  2017-10-1
+
+Qiyang Gu:
+  PRFC 2: PEEP
+  Updated 2017-10-14
+  -->
+    </back>
+</rfc>
