@@ -71,14 +71,14 @@ class PEEPPacket(PacketType):
         return packet
 
     @classmethod
-    def Create_RIP(cls, seq_number, size_for_previous_data):
-        packet = cls(Type=cls.RIP, SequenceNumber=seq_number+size_for_previous_data, Checksum=0)
+    def Create_RIP(cls, expected_seq_number):
+        packet = cls(Type=cls.RIP, SequenceNumber=expected_seq_number, Checksum=0)
         packet.updateChecksum()
         return packet
 
     @classmethod
-    def Create_RIP_ACK(cls, expected_seq_number):
-        packet = cls(Type=cls.RIP_ACK, Checksum=0, Acknowledgement=expected_seq_number)
+    def Create_RIP_ACK(cls, expected_seq_num, sender_seq_num):
+        packet = cls(Type=cls.RIP_ACK, SequenceNumber=expected_seq_num ,Checksum=0, Acknowledgement=sender_seq_num+1)
         packet.updateChecksum()
         return packet
 
