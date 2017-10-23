@@ -1,8 +1,7 @@
-import heapq
+import asyncio, heapq
 from playground.network.common import StackingProtocol
-from playground.network.packet.PacketType import PacketType
 
-from ..constants import DATA_FIELD_SIZE, WINDOW
+from ..constants import DATA_FIELD_SIZE, TIMEOUT_SECONDS, WINDOW
 from ...playgroundpackets import PEEPPacket
 
 class PEEP(StackingProtocol):
@@ -12,7 +11,7 @@ class PEEP(StackingProtocol):
         # transport
         self.transport = None
         # deserializer
-        self._deserializer = PacketType.Deserializer()
+        self._deserializer = PEEPPacket.Deserializer()
         # state
         self._state = 0
         # seq num
@@ -26,6 +25,11 @@ class PEEP(StackingProtocol):
         self._size_for_last_packet = 1
         # backlog
         self._backlog_buffer = b''
+        # rip state
+        self._rip_sent = False
+        self._need_rip_resent = True
+        # rip ack state
+        self._rip_ack_sent = False
 
     def ack_received(self, ack_packet):
         print('received ack packet with ack %s' % ack_packet.Acknowledgement)
@@ -39,6 +43,7 @@ class PEEP(StackingProtocol):
                     self.transport.write(data_packet_for_backlog.__serialize__())
                     print('sent a data packet from backlog with seq num %s' % data_packet_for_backlog.SequenceNumber)
                     heapq.heappush(self._retransmission_heap, data_packet_for_backlog)
+                    asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.check_retransmission_heap, data_packet_for_backlog.SequenceNumber)
                     self._seq_num_for_last_packet = data_packet_for_backlog.SequenceNumber
                     self._size_for_last_packet = len(chunk)
         else:
@@ -47,6 +52,7 @@ class PEEP(StackingProtocol):
     def data_packet_received(self, data_packet):
         print('received data packet with seq num %s' % data_packet.SequenceNumber)
         if data_packet.verifyChecksum():
+
             if data_packet.SequenceNumber == self._seq_num_for_next_expected_packet:
                 # ------ higher protocol data received ------
                 self.higherProtocol().data_received(data_packet.Data)
@@ -69,6 +75,37 @@ class PEEP(StackingProtocol):
         print('send ack packet with ack %s' % ack_packet.Acknowledgement)
         # ----------------------
 
+    def rip_received(self, rip_packet):
+        if rip_packet.verifyChecksum():
+            if rip_packet.SequenceNumber == self._seq_num_for_next_expected_packet:
+                self._seq_num_for_next_expected_packet += 1
+                rip_ack_packet = PEEPPacket.Create_RIP_ACK(self._seq_num_for_last_packet + self._size_for_last_packet, self._seq_num_for_next_expected_packet)
+                self.transport.write(rip_ack_packet.__serialize__())
+                self._rip_ack_sent = True
+                if self._rip_sent:
+                    self.transport.close()
+                    self._state = -1
+                else:
+                    self.clean_buffer()
+            else:
+                print('received a rip packet with wrong sequence')
+        else:
+            print('received a rip packet with incorrect checksum')
+
+    def rip_ack_received(self, rip_ack_packet):
+        if rip_ack_packet.verifyChecksum():
+            if rip_ack_packet.SequenceNumber == self._seq_num_for_next_expected_packet:
+                self._seq_num_for_next_expected_packet += 1
+                if self._rip_ack_sent:
+                    self.transport.close()
+                    self._state = -1
+                else:
+                    self._need_rip_resent = False
+            else:
+                print('received a rip-ack packet with wrong sequence')
+        else:
+            print('received a rip-ack packet with incorrect checksum')
+
     def process_data(self, data_buffer):
         if len(self._backlog_buffer) > 0:
             self._backlog_buffer += data_buffer
@@ -81,9 +118,57 @@ class PEEP(StackingProtocol):
                 print('sent a data packet with seq num %s' % data_chunk_packet.SequenceNumber)
                 # -----------------------------
                 heapq.heappush(self._retransmission_heap, data_chunk_packet)
+                # ------ check if retransmission heap does not pop the packet after timeout ------
+                asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.check_retransmission_heap, data_chunk_packet.SequenceNumber)
+                # --------------------------------------------------------------------------------
                 self._seq_num_for_last_packet = data_chunk_packet.SequenceNumber
                 self._size_for_last_packet = len(chunk)
 
             if len(data_buffer) > 0:
                 self._backlog_buffer += data_buffer
                 print('backlog buffer length is %s' % len(self._backlog_buffer))
+
+    def resend_packet(self, packet):
+        self.transport.write(packet.__serialize__())
+        print('resent a data packet with seq num %s' % packet.SequenceNumber)
+        asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.check_retransmission_heap, packet.SequenceNumber)
+
+    def check_retransmission_heap(self, seq_num):
+        for packet in self._retransmission_heap:
+            if packet.SequenceNumber == seq_num:
+                self.transport.write(packet.__serialize__())
+                print('resent a data packet with seq num %s' % packet.SequenceNumber)
+                asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.check_retransmission_heap, packet.SequenceNumber)
+                break
+
+    def check_rip(self, rip_packet):
+        if self._need_rip_resent:
+            self.transport.write(rip_packet.__serialize__())
+            asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.check_rip, rip_packet)
+
+    def clean_buffer(self):
+        if len(self._backlog_buffer) == 0 and len(self._retransmission_heap) == 0:
+            rip_packet = PEEPPacket.Create_RIP(self._seq_num_for_last_packet + self._size_for_last_packet)
+            self.transport.write(rip_packet.__serialize__())
+            asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.check_rip, rip_packet)
+            self._seq_num_for_last_packet = rip_packet.SequenceNumber
+            self._size_for_last_packet = 1
+            asyncio.get_event_loop().call_later(TIMEOUT_SECONDS*2, self.timeout_close)
+        else:
+            asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.clean_buffer)
+
+    def end_session(self):
+        if len(self._backlog_buffer) == 0 and len(self._retransmission_heap) == 0:
+            rip_packet = PEEPPacket.Create_RIP((self._seq_num_for_last_packet or self._seq_num_for_handshake) + self._size_for_last_packet)
+            self.transport.write(rip_packet.__serialize__())
+            asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.check_rip, rip_packet)
+            self._rip_sent = True
+            self._seq_num_for_last_packet = rip_packet.SequenceNumber
+            self._size_for_last_packet = 1
+        else:
+            asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.end_session)
+
+    def timeout_close(self):
+        if self._state != -1:
+            self.transport.close()
+            self._state = -1

@@ -35,6 +35,10 @@ class PEEPServer(PEEP):
                 elif self._state == 2:
                     if data_packet.Type == 2:
                         self.ack_received(data_packet)
+                    elif data_packet.Type == 3:
+                        self.rip_received(data_packet)
+                    elif data_packet.Type == 4:
+                        self.rip_ack_received(data_packet)
                     elif data_packet.Type == 5:
                         self.data_packet_received(data_packet)
                     else:
