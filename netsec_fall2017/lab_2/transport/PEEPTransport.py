@@ -9,3 +9,6 @@ class PEEPTransport(StackingTransport):
 
     def write(self, data):
         self._protocol.process_data(data)
+
+    def close(self):
+        self._protocol.end_session()
