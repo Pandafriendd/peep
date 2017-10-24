@@ -1,7 +1,7 @@
 import asyncio
 
 from ...playgroundpackets import PEEPPacket, packet_deserialize
-from ..constants import TIMEOUT_SECONDS
+from ..constants import BASIC_TIMEOUT
 from ..transport.PEEPTransport import PEEPTransport
 from .PEEP import PEEP
 
@@ -10,7 +10,6 @@ class PEEPServer(PEEP):
 
     def __init__(self):
         super(PEEPServer, self).__init__()
-        self._timeout_handler = None
 
     def connection_made(self, transport):
         print('---- PEEP server connected ----')
@@ -23,12 +22,10 @@ class PEEPServer(PEEP):
                 if self._state == 0:
                     if data_packet.Type == 0:
                         self.handshake_syn_received(data_packet)
-                        self._timeout_handler = asyncio.get_event_loop().call_later(TIMEOUT_SECONDS, self.forcefully_termination)
                     else:
                         print('PEEP server is waiting for a SYN packet')
                 elif self._state == 1:
                     if data_packet.Type == 2:
-                        self._timeout_handler.cancel()
                         self.handshake_ack_received(data_packet)
                     else:
                         print('PEEP server is waiting for a ACK packet')
@@ -40,7 +37,10 @@ class PEEPServer(PEEP):
                     elif data_packet.Type == 4:
                         self.rip_ack_received(data_packet)
                     elif data_packet.Type == 5:
-                        self.data_packet_received(data_packet)
+                        if self._rip_sent:
+                            print('PEEP server is waiting for a RIP/RIP-ACK packet')
+                        else:
+                            self.data_packet_received(data_packet)
                     else:
                         print('PEEP server is waiting for a ACK/DATA packet')
 
@@ -58,6 +58,7 @@ class PEEPServer(PEEP):
             handshake_packet = PEEPPacket.Create_SYN_ACK(data_packet.SequenceNumber)
             self.transport.write(handshake_packet.__serialize__())
             print('PEEP server sent SYN-ACK with seq num %s' % handshake_packet.SequenceNumber)
+            asyncio.get_event_loop().call_later(BASIC_TIMEOUT, self.check_flag_packet, handshake_packet)
             self._seq_num_for_handshake = handshake_packet.SequenceNumber
             self._state = 1
             self._seq_num_for_next_expected_packet = handshake_packet.Acknowledgement
@@ -68,6 +69,7 @@ class PEEPServer(PEEP):
     def handshake_ack_received(self, data_packet):
         if data_packet.verifyChecksum():
             if data_packet.Acknowledgement == self._seq_num_for_handshake + 1:
+                self._need_flag_packet_resent[1] = False
                 print('PEEP Server received ACK')
                 self.higherProtocol().connection_made(PEEPTransport(self.transport, self))
                 self._state = 2
@@ -76,6 +78,3 @@ class PEEPServer(PEEP):
         else:
             print('ACK incorrect checksum')
 
-    def forcefully_termination(self):
-        print('Timeout session')
-        self.transport.close()
