@@ -19,11 +19,11 @@ Check the pnetworking status, you should see a vnic called v_eth0 whose playgrou
 `python -m test1.ThroughputTester client --reference-stack=lab2_protocol`
 5. Now you can see a lot of messages are printed out. You should wait for several seconds and the record will be printed out after the session ends. In my environment, the run time is like:
 
-| Run Time | Error Rate |
-| :------: | :--------: |
-|  20-25s  |  1/102400  |
-| 1min40s  |  1/10240   |
-| 3min30s  |   1/5000   |
+    | Run Time | Error Rate |
+    | :------: | :--------: |
+    |  20-25s  |  1/102400  |
+    | 1min40s  |  1/10240   |
+    | 3min30s  |   1/5000   |
 
 (The run time will be increase by the increase of error rate. If you set the error more than 1/5000, the run time will be much longer. And there are chances the last packet will be missed.)
 
