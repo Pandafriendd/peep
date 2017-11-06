@@ -19,8 +19,13 @@ case $1 in
 
     "run" )
         case $2 in
-            "test" )
+            "packettest" )
                 python -m netsec_fall2017.lab_$3.submission
+                exit
+            ;;
+
+            "crypt" )
+                python -m netsec_fall2017.lab_3.test.crypt
                 exit
             ;;
 
