@@ -48,7 +48,7 @@ class EchoServerProtocol(StackingProtocol):
 if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()
-    loop.set_debug(enabled=False)
+    # loop.set_debug(enabled=True)
 
     coro = playground.getConnector('lab2_protocol').create_playground_server(lambda: EchoServerProtocol(), 101)
     server = loop.run_until_complete(coro)

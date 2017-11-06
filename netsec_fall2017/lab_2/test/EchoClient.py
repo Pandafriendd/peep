@@ -3,7 +3,6 @@ import playground
 from playground.network.common import StackingProtocol
 
 from .EchoPacket import EchoPacket
-
 # logging.getLogger().setLevel(logging.NOTSET)
 # logging.getLogger().addHandler(logging.StreamHandler())
 
@@ -73,7 +72,7 @@ class EchoControl:
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    loop.set_debug(enabled=False)
+    # loop.set_debug(enabled=True)
     control = EchoControl()
     coro = playground.getConnector('lab2_protocol').create_playground_connection(control.buildProtocol, '26.1.22.9', 101)
     transport, protocol = loop.run_until_complete(coro)
