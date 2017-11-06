@@ -1,6 +1,6 @@
 import asyncio
 
-from ...playgroundpackets import PEEPPacket, packet_deserialize
+from ...playgroundpackets import PEEPPacket
 from ..constants import BASIC_TIMEOUT
 from ..transport.PEEPTransport import PEEPTransport
 from .PEEP import PEEP
