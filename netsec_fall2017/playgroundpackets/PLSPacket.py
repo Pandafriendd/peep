@@ -1,5 +1,5 @@
 from playground.network.packet.fieldtypes.attributes import Optional
-from playground.network.packet.fieldtypes import UINT8, UINT64, BUFFER, STRING, LIST
+from playground.network.packet.fieldtypes import UINT64, BUFFER, STRING, LIST
 from playground.network.packet import PacketType
 # from playground.common import CustomConstant as Constant
 
@@ -43,6 +43,6 @@ class PlsClose(PLSPacket):
     DEFINITION_IDENTIFIER = 'netsecfall2017.pls.close'
     DEFINITION_VERSION = '1.0'
     FIELDS = [
-        ("Error", STRING(Optional))
+        ("Error", STRING({Optional: True}))
     ]
 
