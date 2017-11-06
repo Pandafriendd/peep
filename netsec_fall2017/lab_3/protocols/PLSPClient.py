@@ -1,6 +1,6 @@
 import random
 from .PLSP import PLSP
-from ...playgroundpackets.PLSPacket import PLSPacket, PlsHello, PlsKeyExchange, PlsHandshakeDone, PlsData, PlsClose
+from ...playgroundpackets.PLSPacket import PlsHello
 
 
 class PLSPClient(PLSP):
@@ -15,8 +15,9 @@ class PLSPClient(PLSP):
         pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
         pls_hello_bytes = pls_hello.__serialize__()
         self.transport.write(pls_hello_bytes)
+        # print('pls client send plshello')
         self._state = 1
         self._messages_for_handshake.append(pls_hello_bytes)
 
     def connection_lost(self, exc):
-        pass
+        self.higherProtocol().connection_lost(exc)

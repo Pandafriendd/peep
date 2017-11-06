@@ -9,3 +9,5 @@ class PLSPServer(PLSP):
     def connection_made(self, transport):
         self.transport = transport
 
+    def connection_lost(self, exc):
+        self.higherProtocol().connection_lost(exc)

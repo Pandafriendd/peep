@@ -1,9 +1,10 @@
 import random, hashlib
 
-from playground.network.common import StackingProtocol, StackingTransport
+from playground.network.common import StackingProtocol
 
 from ...playgroundpackets.PLSPacket import PLSPacket, PlsHello, PlsKeyExchange, PlsHandshakeDone, PlsData, PlsClose
 from ..factory.CertFactory import CertFactory
+from ..transport.PLSTransport import PLSTransport
 from ..utils.CryptoUtil import CryptoUtil
 
 class PLSP(StackingProtocol):
@@ -22,7 +23,7 @@ class PLSP(StackingProtocol):
         self._pre_key_for_other_side = None
         self._certs = []
         self._certs_for_other_side = None
-        self._certs.append(self.cf.getCertsForAddr('bb8_csr'))
+        self._certs.append(self.cf.getCertsForAddr('bb8.csr'))
         # vars for handshake
         self._nonce = None
         self._nonce_for_other_side = None
@@ -34,7 +35,7 @@ class PLSP(StackingProtocol):
         self._deserializer.update(data)
         for packet in self._deserializer.nextPackets():
             if isinstance(packet, PlsData):
-                self.higherProtocol().data_received(PlsData.Ciphertext)
+                self.higherProtocol().data_received(packet.Ciphertext)
             elif isinstance(packet, PlsHello):
                 '''
                 1. store certs from the other side (?)
@@ -52,6 +53,7 @@ class PLSP(StackingProtocol):
                     pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
                     pls_hello_bytes = pls_hello.__serialize__()
                     self.transport.write(pls_hello_bytes)
+                    # print('pls server sent plshello')
                     self._state = 2
                     self._messages_for_handshake.append(pls_hello_bytes)
                 elif self._state == 1:
@@ -59,6 +61,7 @@ class PLSP(StackingProtocol):
                     pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
                     pls_key_exchange_bytes = pls_key_exchange.__serialize__()
                     self.transport.write(pls_key_exchange_bytes)
+                    # print('pls client sent plskeyexchange')
                     self._state = 3
                     self._messages_for_handshake.append((pls_key_exchange_bytes))
                 else:
@@ -72,6 +75,7 @@ class PLSP(StackingProtocol):
                         pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
                         pls_key_exchange_bytes = pls_key_exchange.__serialize__()
                         self.transport.write(pls_key_exchange_bytes)
+                        # print('pls server sent plskeyexchange')
                         self._state = 4
                         self._messages_for_handshake.append(pls_key_exchange_bytes)
                     elif self._state == 3:
@@ -80,6 +84,7 @@ class PLSP(StackingProtocol):
                         self._hash_for_handshake = m.digest()
                         pls_handshake_done = PlsHandshakeDone(ValidationHash=self._hash_for_handshake)
                         self.transport.write(pls_handshake_done.__serialize__())
+                        # print('pls client sent plshandshakedone')
                         self._state = 5
                     else:
                         raise ValueError
@@ -97,16 +102,20 @@ class PLSP(StackingProtocol):
                         self.transport.write(pls_handshake_done.__serialize__())
                         self._state = 6
                         # ------------ connect to higher protocol ------------
-                        self.higherProtocol().connection_made(StackingTransport(self.transport))
+                        self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                     else:
                         raise ValueError
                 elif self._state == 5:
                     if self._hash_for_handshake == validation_hash:
-                        self.higherProtocol().connection_made(StackingTransport(self.transport))
+                        self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                         self._state = 6
                 else:
                     raise ValueError
             elif isinstance(packet, PlsClose):
-                pass
+                raise NotImplementedError
             else:
                 print('PLSP is waiting for a PLS packet.')
+
+    def process_data(self, data):
+        pls_data = PlsData(Ciphertext=data, Mac=b'')
+        self.transport.write(pls_data.__serialize__())
