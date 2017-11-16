@@ -8,4 +8,3 @@ lab2_connector = playground.Connector(protocolStack=(cf, sf))
 
 playground.setConnector('lab2_protocol', lab2_connector)
 
-
