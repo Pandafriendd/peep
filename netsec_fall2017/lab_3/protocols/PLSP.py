@@ -58,6 +58,7 @@ class PLSP(StackingProtocol):
                 self._certs_for_other_side = list(packet.Certs)
                 self._nonce_for_other_side = packet.Nonce
                 self._pubk_for_other_side = self.cf.getPubkFromCert(packet.Certs[0])
+                print('----------------------tag----------------------')
                 self._messages_for_handshake.append(packet.__serialize__())
                 if self._state == 0:
                     # start to send plshello

@@ -7,21 +7,22 @@ class CertFactory(object):
 
     def __init__(self):
         super(CertFactory, self).__init__()
-        self._path_prefix = '/Users/qiyanggu/Documents/keys/netsec/'
+        # self._path_prefix = '/Users/qiyanggu/Documents/keys/netsec/'
+        self._path_prefix = '/Users/ming/Desktop/netsec_keys/'
 
     def getPrivateKeyForAddr(self, addr):
-        return self.getContent(self._path_prefix + 'bb8_prik.pem')
+        return self.getContent(self._path_prefix + 'moo.pem')
 
     def getCertsForAddr(self, addr):
         chain = []
-        chain.append(self.getContent(self._path_prefix + 'bb8.cert'))
+        chain.append(self.getContent(self._path_prefix + 'moo.csr'))
         return chain
 
     def getRootCert(self):
         return self.getContent(self._path_prefix + 'root.crt')
 
     def getPublicKeyForAddr(self, addr):
-        return self.getContent((self._path_prefix + 'bb8_pubk.pem'))
+        return self.getContent((self._path_prefix + 'moo.pem'))
 
     def getPreKey(self):
         seed = random.randint(0, 2 ** 64).to_bytes(8, byteorder='big')
