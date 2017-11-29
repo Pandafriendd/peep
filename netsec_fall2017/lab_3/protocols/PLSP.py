@@ -49,7 +49,7 @@ class PLSP(StackingProtocol):
                     plain_text = self._decryption_engine.decrypt(cipher_text)
                     self.higherProtocol().data_received(plain_text)
                 else:
-                    raise ValueError
+                    self.terminate_connection("validation error")
             elif isinstance(packet, PlsHello):
                 '''
                 1. store certs from the other side (?)
@@ -57,23 +57,18 @@ class PLSP(StackingProtocol):
                 3. store the other side's nonce
                 4. store this message for SHA1
                 '''
-
                 self._certs_for_other_side = list(packet.Certs)
                 self._nonce_for_other_side = packet.Nonce
                 self._pubk_for_other_side = self.cf.getPubkFromCert(packet.Certs[0])
                 self._messages_for_handshake.append(packet.__serialize__())
-
                 certlist = []
                 for i in self._certs_for_other_side:
                     certlist.append(CipherUtil.getCertFromBytes(i))
-
                 peername = self.transport.get_extra_info("peername")[0]
                 commonname = self.cf.GetCommonName(packet.Certs[0])
-
                 verified_name = self.cf.comparename(peername, commonname)
                 verified_chain = CipherUtil.ValidateCertChainSigs(certlist)
                 verified_toroot = (packet.Certs[-1] == self.cf.getRootCert())
-                print('---------------------tag---------------------')
 
                 if verified_name and verified_chain and verified_toroot:
                     if self._state == 0:
@@ -81,7 +76,6 @@ class PLSP(StackingProtocol):
                         self._nonce = random.randint(0, 2 ** 64)
                         pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
                         pls_hello_bytes = pls_hello.__serialize__()
-
                         self.transport.write(pls_hello_bytes)
                         self._state = 2
                         self._messages_for_handshake.append(pls_hello_bytes)
@@ -93,9 +87,9 @@ class PLSP(StackingProtocol):
                         self._state = 3
                         self._messages_for_handshake.append((pls_key_exchange_bytes))
                     else:
-                        raise ValueError
+                        self.terminate_connection("Status error")
                 else:
-                    raise ValueError
+                    self.terminate_connection("PlsHello error")
 
             elif isinstance(packet, PlsKeyExchange):
                 if packet.NoncePlusOne == self._nonce + 1:
@@ -116,9 +110,10 @@ class PLSP(StackingProtocol):
                         self.transport.write(pls_handshake_done.__serialize__())
                         self._state = 5
                     else:
-                        raise ValueError
+                        self.terminate_connection("Status error")
                 else:
-                    raise ValueError
+                    self.terminate_connection("PlsKeyExchange error")
+
             elif isinstance(packet, PlsHandshakeDone):
                 validation_hash = packet.ValidationHash
                 if self._state == 4:
@@ -135,16 +130,21 @@ class PLSP(StackingProtocol):
                         # ------------ connect to higher protocol ------------
                         self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                     else:
-                        raise ValueError
+                        self.terminate_connection("PlsHandshakeDone validation error")
+
                 elif self._state == 5:
                     if self._hash_for_handshake == validation_hash:
                         self.set_symmetric_variables(True)
                         self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                         self._state = 6
+                    else:
+                        self.terminate_connection("PlsHandshakeDone validation error")
                 else:
-                    raise ValueError
+                    self.terminate_connection("status error")
+
             elif isinstance(packet, PlsClose):
-                raise NotImplementedError
+                print("connection closed by the other side")
+                self.transport.close()
             else:
                 print('PLSP is waiting for a PLS packet.')
 
@@ -186,4 +186,13 @@ class PLSP(StackingProtocol):
         verification_code = self._MAC_engine.digest()
         pls_data = PlsData(Ciphertext=cipher_text, Mac=verification_code)
         self.transport.write(pls_data.__serialize__())
+
+    def terminate_connection(self, info):
+        pls_close = PlsClose(Error=info)
+        pls_close_bytes = pls_close.__serialize__()
+        self.transport.write(pls_close_bytes)
+        self.transport.close()
+        self.connection_lost()
+
+
 
