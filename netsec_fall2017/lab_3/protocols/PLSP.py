@@ -47,7 +47,11 @@ class PLSP(StackingProtocol):
                     plain_text = self._decryption_engine.decrypt(cipher_text)
                     self.higherProtocol().data_received(plain_text)
                 else:
-                    raise ValueError
+                    pls_close = PlsClose(Error="validation error")
+                    pls_close_bytes = pls_close.__serialize__()
+                    self.transport.write(pls_close_bytes)
+                    self.transport.close()
+                    #raise ValueError
             elif isinstance(packet, PlsHello):
                 '''
                 1. store certs from the other side (?)
@@ -75,7 +79,11 @@ class PLSP(StackingProtocol):
                     self._state = 3
                     self._messages_for_handshake.append((pls_key_exchange_bytes))
                 else:
-                    raise ValueError
+                    pls_close = PlsClose(Error="PlsHello error")
+                    pls_close_bytes = pls_close.__serialize__()
+                    self.transport.write(pls_close_bytes)
+                    self.transport.close()
+                    #raise ValueError
             elif isinstance(packet, PlsKeyExchange):
                 if packet.NoncePlusOne == self._nonce + 1:
                     self._pre_key_for_other_side = CryptoUtil.RSADecrypt(self._private_key, packet.PreKey)
@@ -95,9 +103,17 @@ class PLSP(StackingProtocol):
                         self.transport.write(pls_handshake_done.__serialize__())
                         self._state = 5
                     else:
-                        raise ValueError
+                        pls_close = PlsClose(Error="status error")
+                        pls_close_bytes = pls_close.__serialize__()
+                        self.transport.write(pls_close_bytes)
+                        self.transport.close()
+                        #raise ValueError
                 else:
-                    raise ValueError
+                    pls_close = PlsClose(Error="PlsKeyExchange error")
+                    pls_close_bytes = pls_close.__serialize__()
+                    self.transport.write(pls_close_bytes)
+                    self.transport.close()
+                    #raise ValueError
             elif isinstance(packet, PlsHandshakeDone):
                 validation_hash = packet.ValidationHash
                 if self._state == 4:
@@ -114,16 +130,32 @@ class PLSP(StackingProtocol):
                         # ------------ connect to higher protocol ------------
                         self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                     else:
-                        raise ValueError
+                        pls_close = PlsClose(Error="PlsHandshakeDone validation error")
+                        pls_close_bytes = pls_close.__serialize__()
+                        self.transport.write(pls_close_bytes)
+                        self.transport.close()
+                        #raise ValueError
                 elif self._state == 5:
                     if self._hash_for_handshake == validation_hash:
                         self.set_symmetric_variables(True)
                         self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                         self._state = 6
+                    else:
+                        pls_close = PlsClose(Error="PlsHandshakeDone validation error")
+                        pls_close_bytes = pls_close.__serialize__()
+                        self.transport.write(pls_close_bytes)
+                        self.transport.close()
+                        #raise ValueError
                 else:
-                    raise ValueError
+                    pls_close = PlsClose(Error="status error")
+                    pls_close_bytes = pls_close.__serialize__()
+                    self.transport.write(pls_close_bytes)
+                    self.transport.close()
+                    #raise ValueError
             elif isinstance(packet, PlsClose):
-                raise NotImplementedError
+                print(packet.Error)
+                self.transport.close()
+                #raise NotImplementedError
             else:
                 print('PLSP is waiting for a PLS packet.')
 
