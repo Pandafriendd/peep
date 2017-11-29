@@ -24,7 +24,8 @@ class PLSP(StackingProtocol):
         self._pre_key = None
         self._pre_key_for_other_side = None
         self._certs = self.cf.getCertsForAddr(address)
-        self._certs_for_other_side = None
+        self._certs.append(self.cf.getRootCert())
+        self._certs_for_other_side = []
         # vars for handshake
         self._nonce = None
         self._nonce_for_other_side = None
@@ -56,32 +57,46 @@ class PLSP(StackingProtocol):
                 3. store the other side's nonce
                 4. store this message for SHA1
                 '''
+
                 self._certs_for_other_side = list(packet.Certs)
                 self._nonce_for_other_side = packet.Nonce
                 self._pubk_for_other_side = self.cf.getPubkFromCert(packet.Certs[0])
                 self._messages_for_handshake.append(packet.__serialize__())
-                if self._state == 0:
-                    # start to send plshello
-                    self._nonce = random.randint(0, 2 ** 64)
-                    pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
-                    pls_hello_bytes = pls_hello.__serialize__()
-                    peername = self.transport.get_extra_info("peername")[0]
-                    commonname = self.cf.GetCommonName(packet.Certs[0])
-                    print(self.cf.comparename(peername, commonname))
-                    print(CipherUtil.ValidateCertChainSigs(packet.Certs))
-                    print('-----------------------tag------------------------')
-                    self.transport.write(pls_hello_bytes)
-                    self._state = 2
-                    self._messages_for_handshake.append(pls_hello_bytes)
-                elif self._state == 1:
-                    self._pre_key = self.cf.getPreKey()
-                    pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
-                    pls_key_exchange_bytes = pls_key_exchange.__serialize__()
-                    self.transport.write(pls_key_exchange_bytes)
-                    self._state = 3
-                    self._messages_for_handshake.append((pls_key_exchange_bytes))
+
+                certlist = []
+                for i in self._certs_for_other_side:
+                    certlist.append(CipherUtil.getCertFromBytes(i))
+
+                peername = self.transport.get_extra_info("peername")[0]
+                commonname = self.cf.GetCommonName(packet.Certs[0])
+
+                verified_name = self.cf.comparename(peername, commonname)
+                verified_chain = CipherUtil.ValidateCertChainSigs(certlist)
+                verified_toroot = (packet.Certs[-1] == self.cf.getRootCert())
+                print('---------------------tag---------------------')
+
+                if verified_name and verified_chain and verified_toroot:
+                    if self._state == 0:
+                        # start to send plshello
+                        self._nonce = random.randint(0, 2 ** 64)
+                        pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
+                        pls_hello_bytes = pls_hello.__serialize__()
+
+                        self.transport.write(pls_hello_bytes)
+                        self._state = 2
+                        self._messages_for_handshake.append(pls_hello_bytes)
+                    elif self._state == 1:
+                        self._pre_key = self.cf.getPreKey()
+                        pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
+                        pls_key_exchange_bytes = pls_key_exchange.__serialize__()
+                        self.transport.write(pls_key_exchange_bytes)
+                        self._state = 3
+                        self._messages_for_handshake.append((pls_key_exchange_bytes))
+                    else:
+                        raise ValueError
                 else:
                     raise ValueError
+
             elif isinstance(packet, PlsKeyExchange):
                 if packet.NoncePlusOne == self._nonce + 1:
                     self._pre_key_for_other_side = CryptoUtil.RSADecrypt(self._private_key, packet.PreKey)
