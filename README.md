@@ -1,25 +1,31 @@
 # Lab for class of Network Security
 
 ### Content
-- Handshake examination instructions
+- Lab 2 test instructions
 - Installation
 - Instructions on start.sh
 
 ---
 
-### Handshake examination instructions
+### Lab 2 instructions
 1. Install
 2. Make switch and vnic on:  
 `cd /path/to/lab-for-netsec`  
 `source venv/bin/activate`  
 `pnetworking on`  
-Check the pnetworking status, you should see a vnic called v_eth0 whose playground address is 26.1.22.9 has connected to a switch called switchpg1. The switch and vnic should all be enabled.
-3. Start a server:  
-`./start.sh run server`
-4. Run another terminal in the same directory, start a client:  
-`./start.sh run client`
-5. Now you can see connection information printed on the terminal. I have already written some basic data transmission codes, so you can see all the information from handshake to Application layer messages.  
-In server, you could find **'PEEP server received SYN'**, **'PEEP server sent SYN-ACK'**, and something like that. In client, you could see **'PEEP client sent SYN'** and something like that.
+Check the pnetworking status, you should see a vnic called v_eth0 whose playground address is 26.1.22.9 has connected to a unreliable_switch called switchpg2. The switch and vnic should all be enabled.
+3. Rename the playground test module. Because the Python interpreter will identify a _test_ module as its built in module. So we go to `./venv/lib/site-packages/`, and find _test_ module, and then rename it, for example, _test1_.
+4. Run the test command:  
+`python -m test1.ThroughputTester client --reference-stack=lab2_protocol`
+5. Now you can see a lot of messages are printed out. You should wait for several seconds and the record will be printed out after the session ends. In my environment, the run time is like:
+
+    | Run Time | Error Rate |
+    | :------: | :--------: |
+    |  20-25s  |  1/102400  |
+    | 1min40s  |  1/10240   |
+    | 3min30s  |   1/5000   |
+
+(The run time will be increase by the increase of error rate. If you set the error more than 1/5000, the run time will be much longer. And there are chances the last packet will be missed.)
 
 ---
 

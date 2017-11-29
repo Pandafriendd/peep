@@ -4,4 +4,6 @@ venv/
 *.pid.lock
 *.status
 *.local-*
+*.hsd1.md.*
+.vscode
 __pycache__

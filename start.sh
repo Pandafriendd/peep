@@ -19,13 +19,23 @@ case $1 in
 
     "run" )
         case $2 in
-            "test" )
+            "packettest" )
                 python -m netsec_fall2017.lab_$3.submission
+                exit
+            ;;
+
+            "crypt" )
+                python -m netsec_fall2017.lab_3.test.crypt
                 exit
             ;;
 
             "server" )
                 python -m netsec_fall2017.lab_1d.server
+                exit
+            ;;
+
+            "es" )
+                python -m netsec_fall2017.lab_2.test.EchoServer
                 exit
             ;;
 
@@ -37,6 +47,11 @@ case $1 in
                     mode=$3
                 fi
                 python -m netsec_fall2017.lab_1d.client ${mode}
+                exit
+            ;;
+
+            "ec" )
+                python -m netsec_fall2017.lab_2.test.EchoClient
                 exit
             ;;
 

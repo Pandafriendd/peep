@@ -93,10 +93,9 @@ class MyPacketsTestCase(unittest.TestCase):
 class PEEPTestCase(unittest.TestCase):
 
     def test_packet(self):
-        pp = PEEPPacket(Type=2, Checksum=0)
-        pps = pp.__serialize__()
-        self.assertEqual(pp, PEEPPacket.Deserialize(pps))
-        self.assertEqual(2, PEEPPacket.Deserialize(pps).Type)
+        pp = PEEPPacket.Create_SYN()
+        li = [2, 3, 4]
+        self.assertEqual(li[pp.Type], 2)
 
 
 if __name__ == '__main__':
