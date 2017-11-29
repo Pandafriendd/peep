@@ -2,6 +2,10 @@ import random, hashlib
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from netsec_fall2017.lab_3.utils import CipherUtil
+from cryptography.x509.oid import NameOID
+
+
 
 class CertFactory(object):
 
@@ -11,18 +15,18 @@ class CertFactory(object):
         self._path_prefix = '/Users/ming/Desktop/netsec_keys/'
 
     def getPrivateKeyForAddr(self, addr):
-        return self.getContent(self._path_prefix + 'moo.pem')
+        return self.getContent(self._path_prefix + 'bb8_prik.pem')
 
     def getCertsForAddr(self, addr):
         chain = []
-        chain.append(self.getContent(self._path_prefix + 'moo.csr'))
+        chain.append(self.getContent(self._path_prefix + 'bb8.cert'))
         return chain
 
     def getRootCert(self):
         return self.getContent(self._path_prefix + 'root.crt')
 
     def getPublicKeyForAddr(self, addr):
-        return self.getContent((self._path_prefix + 'moo.pem'))
+        return self.getContent((self._path_prefix + 'bb8_pubk.pem'))
 
     def getPreKey(self):
         seed = random.randint(0, 2 ** 64).to_bytes(8, byteorder='big')
@@ -41,3 +45,31 @@ class CertFactory(object):
             raise ValueError('No Content!')
         else:
             return content
+
+    def GetCommonName(self, certBytes):
+        cert = CipherUtil.getCertFromBytes(certBytes)
+        commonNameList = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+        if len(commonNameList) != 1: return None
+        commonNameAttr = commonNameList[0]
+        return commonNameAttr.value
+
+    def VerifyCertSignature(self, cert, issuer):
+        try:
+            issuer.public_key().verify(
+                cert.signature,
+                cert.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                hashes.SHA256()
+            )
+            return True
+        except:
+            return False
+
+    def comparename(self, peername, commonname):
+        i = 0
+        while i < len(commonname):
+            if peername[i] != commonname[i]:
+                return False
+            i += 1
+        return True
+

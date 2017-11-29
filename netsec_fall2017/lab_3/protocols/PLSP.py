@@ -6,6 +6,7 @@ from ...playgroundpackets.PLSPacket import PLSPacket, PlsHello, PlsKeyExchange, 
 from ..factory.CertFactory import CertFactory
 from ..transport.PLSTransport import PLSTransport
 from ..utils.CryptoUtil import CryptoUtil
+from netsec_fall2017.lab_3.utils import CipherUtil
 
 
 class PLSP(StackingProtocol):
@@ -58,13 +59,17 @@ class PLSP(StackingProtocol):
                 self._certs_for_other_side = list(packet.Certs)
                 self._nonce_for_other_side = packet.Nonce
                 self._pubk_for_other_side = self.cf.getPubkFromCert(packet.Certs[0])
-                print('----------------------tag----------------------')
                 self._messages_for_handshake.append(packet.__serialize__())
                 if self._state == 0:
                     # start to send plshello
                     self._nonce = random.randint(0, 2 ** 64)
                     pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
                     pls_hello_bytes = pls_hello.__serialize__()
+                    peername = self.transport.get_extra_info("peername")[0]
+                    commonname = self.cf.GetCommonName(packet.Certs[0])
+                    print(self.cf.comparename(peername, commonname))
+                    print(CipherUtil.ValidateCertChainSigs(packet.Certs))
+                    print('-----------------------tag------------------------')
                     self.transport.write(pls_hello_bytes)
                     self._state = 2
                     self._messages_for_handshake.append(pls_hello_bytes)

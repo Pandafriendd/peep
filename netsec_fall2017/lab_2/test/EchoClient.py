@@ -74,7 +74,7 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     # loop.set_debug(enabled=True)
     control = EchoControl()
-    coro = playground.getConnector('lab3_protocol').create_playground_connection(control.buildProtocol, '26.1.22.9', 101)
+    coro = playground.getConnector('lab3_protocol').create_playground_connection(control.buildProtocol, '20174.1.9596.2', 101)
     transport, protocol = loop.run_until_complete(coro)
     print("Echo Client Connected. Starting UI t:{}. p:{}".format(transport, protocol))
     control.connect(protocol)
