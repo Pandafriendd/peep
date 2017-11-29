@@ -6,7 +6,7 @@ from ...playgroundpackets.PLSPacket import PlsHello
 class PLSPClient(PLSP):
 
     def __init__(self):
-        super(PLSPClient, self).__init__()
+        super(PLSPClient, self).__init__('20174.1.9596.2')
 
     def connection_made(self, transport):
         self.transport = transport
