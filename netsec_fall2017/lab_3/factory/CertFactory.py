@@ -1,4 +1,4 @@
-import random
+import random, hashlib
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
@@ -10,23 +10,26 @@ class CertFactory(object):
         self._path_prefix = '/Users/qiyanggu/Documents/keys/netsec/'
 
     def getPrivateKeyForAddr(self, addr):
-        return self.getContent(self._path_prefix + addr)
+        return self.getContent(self._path_prefix + 'bb8_prik.pem')
 
     def getCertsForAddr(self, addr):
-        return self.getContent(self._path_prefix + addr)
+        chain = []
+        chain.append(self.getContent(self._path_prefix + 'bb8.cert'))
+        return chain
 
     def getRootCert(self):
         return self.getContent(self._path_prefix + 'root.crt')
 
     def getPublicKeyForAddr(self, addr):
-        return self.getContent((self._path_prefix + addr))
+        return self.getContent((self._path_prefix + 'bb8_pubk.pem'))
 
     def getPreKey(self):
-        return str(random.randint(0, 2**16)).encode()
+        seed = random.randint(0, 2 ** 64).to_bytes(8, byteorder='big')
+        return hashlib.sha1(seed).digest()[:16]
 
     def getPubkFromCert(self, cert):
-        csr = x509.load_pem_x509_csr(cert, default_backend())
-        return csr.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+        cert_object = x509.load_pem_x509_certificate(cert, default_backend())
+        return cert_object.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
 
     @staticmethod
     def getContent(addr):

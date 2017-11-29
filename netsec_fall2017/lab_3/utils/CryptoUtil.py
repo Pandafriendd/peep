@@ -1,7 +1,9 @@
 import base64
 from Crypto import Random
-from Crypto.Cipher import PKCS1_v1_5 as Cipher_pkcs1_v1_5
+from Crypto.Cipher import PKCS1_v1_5 as Cipher_pkcs1_v1_5, AES
+from Crypto.Hash import HMAC, SHA
 from Crypto.PublicKey import RSA
+from Crypto.Util import Counter
 
 
 class CryptoUtil(object):
@@ -23,3 +25,12 @@ class CryptoUtil(object):
         cipher = Cipher_pkcs1_v1_5.new(rsa_key)
         plain_text = cipher.decrypt(base64.b64decode(cipher_text), random_generator)
         return plain_text
+
+    @classmethod
+    def AESCryptoEngine(cls, key, IV):
+        IV_asCtr = Counter.new(128, initial_value=int.from_bytes(IV, byteorder='big'))
+        return AES.new(key, counter=IV_asCtr, mode=AES.MODE_CTR)
+
+    @classmethod
+    def HMACEngine(self, key):
+        return HMAC.new(key, digestmod=SHA)
