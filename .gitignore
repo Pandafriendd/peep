@@ -6,4 +6,6 @@ venv/
 *.local-*
 *.hsd1.md.*
 .vscode
+_DS_Store
+*.pyc
 __pycache__
