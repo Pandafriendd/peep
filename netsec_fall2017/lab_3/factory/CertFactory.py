@@ -12,7 +12,8 @@ class CertFactory(object):
     def __init__(self):
         super(CertFactory, self).__init__()
         # self._path_prefix = '/Users/qiyanggu/Documents/keys/netsec/'
-        self._path_prefix = '/Users/ming/Desktop/netsec_keys/'
+        # self._path_prefix = '/Users/ming/Desktop/netsec_keys/'
+        self._path_prefix = '/home/team6/ming/keys/'
 
     def getPrivateKeyForAddr(self, addr):
         # return self.getContent(self._path_prefix + 'bb8_prik.pem')
