@@ -4,9 +4,9 @@ from ...lab_2.protocols import PEEPServer, PEEPClient, PassThroughProtocol
 from  ..protocols import PLSPServer, PLSPClient
 
 def get_lab3_server_factory():
-    return StackingProtocolFactory(lambda: PLSPServer(), lambda: PEEPServer())
-    # return StackingProtocolFactory(lambda: PLSPServer(), lambda: PassThroughProtocol())
+    return StackingProtocolFactory(lambda: PEEPServer(), lambda: PLSPServer())
+    #return StackingProtocolFactory(lambda: PLSPServer(), lambda: PEEPServer())
 
 def get_lab3_client_factory():
-    return StackingProtocolFactory(lambda: PLSPClient(), lambda: PEEPClient())
-    # return StackingProtocolFactory(lambda: PLSPClient(), lambda: PassThroughProtocol())
+    return StackingProtocolFactory(lambda: PEEPClient(), lambda: PLSPClient())
+    #return StackingProtocolFactory(lambda: PLSPClient(), lambda: PEEPClient())

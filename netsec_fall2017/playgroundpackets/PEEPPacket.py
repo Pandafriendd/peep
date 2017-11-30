@@ -7,7 +7,7 @@ from playground.common import CustomConstant as Constant
 
 @functools.total_ordering
 class PEEPPacket(PacketType):
-    DEFINITION_IDENTIFIER = 'peep.packet'
+    DEFINITION_IDENTIFIER = 'PEEP.Packet'
     DEFINITION_VERSION = '1.0'
 
     FIELDS = [

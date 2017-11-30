@@ -69,10 +69,7 @@ class PLSP(StackingProtocol):
                 verified_name = self.cf.comparename(peername, commonname)
                 verified_chain = CipherUtil.ValidateCertChainSigs(certlist)
                 verified_toroot = (packet.Certs[-1] == self.cf.getRootCert())
-
-                print('------------------tag------------------')
-                print(peername, commonname)
-                print(verified_name, verified_chain, verified_toroot)
+                
 
                 if verified_name and verified_chain and verified_toroot:
                     if self._state == 0:
