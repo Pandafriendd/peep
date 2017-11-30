@@ -6,4 +6,4 @@ cf = get_lab2_client_factory()
 sf = get_lab2_server_factory()
 lab2_connector = playground.Connector(protocolStack=(cf, sf))
 
-playground.setConnector('lab2_protocol', lab2_connector)
+playground.setConnector('lab2_qy', lab2_connector)
