@@ -241,3 +241,4 @@ def ValidateCertChainSigs(certs):
         if not issuer.verify(this.tbs_certificate_bytes, this.signature):
             return False
     return True
+

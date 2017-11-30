@@ -18,13 +18,12 @@ class PLSP(StackingProtocol):
         self._deserializer = PLSPacket.Deserializer()
         # cert factory and cert vars
         self.cf = CertFactory()
-        self._private_key = self.cf.getPrivateKeyForAddr(address)
+        self._private_key = self.cf.getPrivateKeyForAddr('bb8_prik.pem')
         self._public_key = None
         self._pubk_for_other_side = None
         self._pre_key = None
         self._pre_key_for_other_side = None
-        self._certs = self.cf.getCertsForAddr(address)
-        self._certs.append(self.cf.getRootCert())
+        self._certs = self.cf.getCertsForAddr('bb8.cert')
         self._certs_for_other_side = []
         # vars for handshake
         self._nonce = None
@@ -37,6 +36,7 @@ class PLSP(StackingProtocol):
         self._decryption_engine = None
         self._MAC_engine = None
         self._verification_engine = None
+
 
     def data_received(self, data):
         self._deserializer.update(data)
@@ -69,6 +69,10 @@ class PLSP(StackingProtocol):
                 verified_name = self.cf.comparename(peername, commonname)
                 verified_chain = CipherUtil.ValidateCertChainSigs(certlist)
                 verified_toroot = (packet.Certs[-1] == self.cf.getRootCert())
+
+                print('------------------tag------------------')
+                print(peername, commonname)
+                print(verified_name, verified_chain, verified_toroot)
 
                 if verified_name and verified_chain and verified_toroot:
                     if self._state == 0:
