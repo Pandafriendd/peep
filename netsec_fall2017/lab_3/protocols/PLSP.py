@@ -40,6 +40,7 @@ class PLSP(StackingProtocol):
 
     def data_received(self, data):
         self._deserializer.update(data)
+        print('-------------tag---------------')
         for packet in self._deserializer.nextPackets():
             if isinstance(packet, PlsData):
                 cipher_text = packet.Ciphertext
@@ -69,7 +70,6 @@ class PLSP(StackingProtocol):
                 verified_name = self.cf.comparename(peername, commonname)
                 verified_chain = CipherUtil.ValidateCertChainSigs(certlist)
                 verified_toroot = (packet.Certs[-1] == self.cf.getRootCert())
-                
 
                 if verified_name and verified_chain and verified_toroot:
                     if self._state == 0:
