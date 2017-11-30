@@ -145,6 +145,7 @@ class PLSP(StackingProtocol):
 
             elif isinstance(packet, PlsClose):
                 print("connection closed by the other side")
+                print(packet.Error)
                 self.transport.close()
             else:
                 print('PLSP is waiting for a PLS packet.')
@@ -193,7 +194,7 @@ class PLSP(StackingProtocol):
         pls_close_bytes = pls_close.__serialize__()
         self.transport.write(pls_close_bytes)
         self.transport.close()
-        self.connection_lost()
+
 
 
 
