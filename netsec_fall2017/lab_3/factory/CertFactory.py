@@ -22,7 +22,7 @@ class CertFactory(object):
     def getCertsForAddr(self, addr):
         chain = []
         chain.append(self.getContent(self._path_prefix + addr))
-        # chain.append(self.getContent(self._path_prefix + 'bb8.cert'))
+        chain.append(self.getContent(self._path_prefix + 'bb8.cert'))
         chain.append(self.getRootCert())
         return chain
 

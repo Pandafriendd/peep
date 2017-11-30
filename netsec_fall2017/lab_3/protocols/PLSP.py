@@ -23,7 +23,7 @@ class PLSP(StackingProtocol):
         self._pubk_for_other_side = None
         self._pre_key = None
         self._pre_key_for_other_side = None
-        self._certs = self.cf.getCertsForAddr('bb8.cert')
+        self._certs = self.cf.getCertsForAddr('gg8.cert')
         self._certs_for_other_side = []
         # vars for handshake
         self._nonce = None
