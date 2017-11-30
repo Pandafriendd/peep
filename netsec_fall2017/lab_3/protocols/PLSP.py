@@ -40,8 +40,8 @@ class PLSP(StackingProtocol):
 
     def data_received(self, data):
         self._deserializer.update(data)
-        print('-------------tag---------------')
         for packet in self._deserializer.nextPackets():
+            print('-------------tag---------------')
             if isinstance(packet, PlsData):
                 cipher_text = packet.Ciphertext
                 verification_code = packet.Mac
