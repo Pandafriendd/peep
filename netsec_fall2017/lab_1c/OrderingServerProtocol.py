@@ -6,6 +6,7 @@ from ..mypackets import RequestMenu, Menu, Order, Result
 from ..mypackets import init_packet
 
 
+
 class OrderingServerProtocol(asyncio.Protocol):
     ORDER_NUMBER = 0
 
@@ -15,45 +16,52 @@ class OrderingServerProtocol(asyncio.Protocol):
         self.receiving_state = 0
         self.received_message = []
         self._for_test = for_test
+        self.deserializer = PacketType.Deserializer()
 
     def connection_made(self, transport):
         print("Received a connection from {}".format(transport.get_extra_info("peername")))
         self.transport = transport
 
     def data_received(self, data):
-        data_after_deserialization = None
-        deserializer = PacketType.Deserializer()
+        # data_after_deserialization = None
+        # deserializer = PacketType.Deserializer()
+        #
+        # while len(data) > 0:
+        #     chunk, data = data[:8], data[8:]
+        #     deserializer.update(chunk)
+        #     for packet in deserializer.nextPackets():
+        #         data_after_deserialization = packet
+        #         self.received_message.append(data_after_deserialization)
+        #
+        # if isinstance(data_after_deserialization, RequestMenu):
+        #     if self.receiving_state == 0:
+        #         print('Server receives a request menu message with state %s' % self.receiving_state)
+        #         menu = self.generate_packet_of_menu()
+        #         print('Server sends a menu message')
+        #         self.receiving_state += 1
+        #         self.transport.write(menu.__serialize__())
+        #     else:
+        #         raise ValueError('Wrong state when server receives request menu message')
+        #
+        # elif isinstance(data_after_deserialization, Order):
+        #     if self.receiving_state == 1:
+        #         print('Server receive an Order message with state %s' % self.receiving_state)
+        #         result = self.generate_packet_of_result(data_after_deserialization.ID,
+        #                                                 data_after_deserialization.setMeal)
+        #         print('Server sends a Result message')
+        #         self.receiving_state = -1
+        #         self.transport.write(result.__serialize__())
+        #         if not self._for_test:
+        #             self.transport.close()
+        #     else:
+        #         raise ValueError('Wrong state when server receives order message')
+        # else:
+        #     raise TypeError('Receive incorrect packet')
 
-        while len(data) > 0:
-            chunk, data = data[:8], data[8:]
-            deserializer.update(chunk)
-            for packet in deserializer.nextPackets():
-                data_after_deserialization = packet
-                self.received_message.append(data_after_deserialization)
-
-        if isinstance(data_after_deserialization, RequestMenu):
-            if self.receiving_state == 0:
-                print('Server receives a request menu message with state %s' % self.receiving_state)
-                menu = self.generate_packet_of_menu()
-                print('Server sends a menu message')
-                self.receiving_state += 1
-                self.transport.write(menu.__serialize__())
-            else:
-                raise ValueError('Wrong state when server receives request menu message')
-
-        elif isinstance(data_after_deserialization, Order):
-            if self.receiving_state == 1:
-                print('Server receive an Order message with state %s' % self.receiving_state)
-                result = self.generate_packet_of_result(data_after_deserialization.ID, data_after_deserialization.setMeal)
-                print('Server sends a Result message')
-                self.receiving_state = -1
-                self.transport.write(result.__serialize__())
-                if not self._for_test:
-                    self.transport.close()
-            else:
-                raise ValueError('Wrong state when server receives order message')
-        else:
-            raise TypeError('Receive incorrect packet')
+        self.deserializer.update(data)
+        print(data)
+        for pkt in deserializer.nextPackets():
+            print("got package +++++++++++++++++++",pkt)
 
     def connection_lost(self, exc):
         print('Server connection lost')

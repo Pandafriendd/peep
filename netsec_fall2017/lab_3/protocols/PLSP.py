@@ -1,6 +1,7 @@
 import random, hashlib
 
 from playground.network.common import StackingProtocol
+from playground.common import CipherUtil
 
 from ...playgroundpackets.PLSPacket import PLSPacket, PlsHello, PlsKeyExchange, PlsHandshakeDone, PlsData, PlsClose
 from ..factory.CertFactory import CertFactory
@@ -23,7 +24,7 @@ class PLSP(StackingProtocol):
         self._pre_key = None
         self._pre_key_for_other_side = None
         self._certs = self.cf.getCertsForAddr(address)
-        self._certs_for_other_side = None
+        self._certs_for_other_side = []
         # vars for handshake
         self._nonce = None
         self._nonce_for_other_side = None
@@ -36,6 +37,7 @@ class PLSP(StackingProtocol):
         self._MAC_engine = None
         self._verification_engine = None
 
+
     def data_received(self, data):
         self._deserializer.update(data)
         for packet in self._deserializer.nextPackets():
@@ -47,7 +49,8 @@ class PLSP(StackingProtocol):
                     plain_text = self._decryption_engine.decrypt(cipher_text)
                     self.higherProtocol().data_received(plain_text)
                 else:
-                    raise ValueError
+                    # pass
+                    self.terminate_connection("validation error")
             elif isinstance(packet, PlsHello):
                 '''
                 1. store certs from the other side (?)
@@ -59,45 +62,68 @@ class PLSP(StackingProtocol):
                 self._nonce_for_other_side = packet.Nonce
                 self._pubk_for_other_side = self.cf.getPubkFromCert(packet.Certs[0])
                 self._messages_for_handshake.append(packet.__serialize__())
-                if self._state == 0:
-                    # start to send plshello
-                    self._nonce = random.randint(0, 2 ** 64)
-                    pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
-                    pls_hello_bytes = pls_hello.__serialize__()
-                    self.transport.write(pls_hello_bytes)
-                    self._state = 2
-                    self._messages_for_handshake.append(pls_hello_bytes)
-                elif self._state == 1:
-                    self._pre_key = self.cf.getPreKey()
-                    pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
-                    pls_key_exchange_bytes = pls_key_exchange.__serialize__()
-                    self.transport.write(pls_key_exchange_bytes)
-                    self._state = 3
-                    self._messages_for_handshake.append((pls_key_exchange_bytes))
+
+                '''
+                verify certs
+                '''
+                tmp_cert_list = []
+                for cert_for_other_side in self._certs_for_other_side:
+                    tmp_cert_list.append(CipherUtil.getCertFromBytes(cert_for_other_side))
+                peer_name = self.transport.get_extra_info("peername")[0]
+                common_name = self.cf.GetCommonName(packet.Certs[0])
+
+                if str(peer_name).startswith(common_name) and CipherUtil.ValidateCertChainSigs(tmp_cert_list) and packet.Certs[-1] == self.cf.getRootCert():
+                    if self._state == 0:
+                        # start to send plshello
+                        self._nonce = random.randint(0, 2 ** 64)
+                        pls_hello = PlsHello(Nonce=self._nonce, Certs=self._certs)
+                        pls_hello_bytes = pls_hello.__serialize__()
+                        self.transport.write(pls_hello_bytes)
+                        self._state = 2
+                        self._messages_for_handshake.append(pls_hello_bytes)
+                    elif self._state == 1:
+                        self._pre_key = self.cf.getPreKey()
+                        pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
+                        pls_key_exchange_bytes = pls_key_exchange.__serialize__()
+                        self.transport.write(pls_key_exchange_bytes)
+                        self._state = 3
+                        self._messages_for_handshake.append((pls_key_exchange_bytes))
+                    else:
+                        # pass
+                        self.terminate_connection("Status error")
                 else:
-                    raise ValueError
+                    # pass
+                    self.terminate_connection("PlsHello error")
+
             elif isinstance(packet, PlsKeyExchange):
                 if packet.NoncePlusOne == self._nonce + 1:
                     self._pre_key_for_other_side = CryptoUtil.RSADecrypt(self._private_key, packet.PreKey)
                     self._messages_for_handshake.append(packet.__serialize__())
                     if self._state == 2:
                         self._pre_key = self.cf.getPreKey()
-                        pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
+                        pls_key_exchange = PlsKeyExchange(
+                            PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key),
+                            NoncePlusOne=self._nonce_for_other_side + 1)
                         pls_key_exchange_bytes = pls_key_exchange.__serialize__()
                         self.transport.write(pls_key_exchange_bytes)
                         self._state = 4
                         self._messages_for_handshake.append(pls_key_exchange_bytes)
                     elif self._state == 3:
                         m = hashlib.sha1()
-                        m.update(self._messages_for_handshake[0] + self._messages_for_handshake[1] + self._messages_for_handshake[2] + self._messages_for_handshake[3])
+                        m.update(self._messages_for_handshake[0] + self._messages_for_handshake[1] +
+                                 self._messages_for_handshake[2] + self._messages_for_handshake[3])
                         self._hash_for_handshake = m.digest()
                         pls_handshake_done = PlsHandshakeDone(ValidationHash=self._hash_for_handshake)
                         self.transport.write(pls_handshake_done.__serialize__())
                         self._state = 5
                     else:
-                        raise ValueError
+                        # pass
+                        self.terminate_connection("Status error")
                 else:
-                    raise ValueError
+                    # pass
+                    self.terminate_connection("PlsKeyExchange error")
+
+
             elif isinstance(packet, PlsHandshakeDone):
                 validation_hash = packet.ValidationHash
                 if self._state == 4:
@@ -114,16 +140,24 @@ class PLSP(StackingProtocol):
                         # ------------ connect to higher protocol ------------
                         self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                     else:
-                        raise ValueError
+                        # pass
+                        self.terminate_connection("PlsHandshakeDone validation error")
+
                 elif self._state == 5:
                     if self._hash_for_handshake == validation_hash:
                         self.set_symmetric_variables(True)
                         self.higherProtocol().connection_made(PLSTransport(self.transport, self))
                         self._state = 6
+                    else:
+                        # pass
+                        self.terminate_connection("PlsHandshakeDone validation error")
                 else:
-                    raise ValueError
+                    # pass
+                    self.terminate_connection("status error")
+
             elif isinstance(packet, PlsClose):
-                raise NotImplementedError
+                print("connection closed by the other side")
+                self.transport.close()
             else:
                 print('PLSP is waiting for a PLS packet.')
 
@@ -165,4 +199,12 @@ class PLSP(StackingProtocol):
         verification_code = self._MAC_engine.digest()
         pls_data = PlsData(Ciphertext=cipher_text, Mac=verification_code)
         self.transport.write(pls_data.__serialize__())
+
+    def terminate_connection(self, info):
+        print(info)
+        pls_close = PlsClose(Error=info)
+        pls_close_bytes = pls_close.__serialize__()
+        self.transport.write(pls_close_bytes)
+        self.transport.close()
+
 

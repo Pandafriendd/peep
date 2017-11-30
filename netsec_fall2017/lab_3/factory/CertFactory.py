@@ -1,13 +1,20 @@
 import random, hashlib
+
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from cryptography.x509.oid import NameOID
+
+from playground.common import CipherUtil
+
 
 class CertFactory(object):
 
     def __init__(self):
         super(CertFactory, self).__init__()
         self._path_prefix = '/Users/qiyanggu/Documents/keys/netsec/'
+        # self._path_prefix = '/Users/ming/Desktop/netsec_keys/'
+        # self._path_prefix = '/home/team6/ming/keys/'
 
     def getPrivateKeyForAddr(self, addr):
         return self.getContent(self._path_prefix + 'bb8_prik.pem')
@@ -15,6 +22,7 @@ class CertFactory(object):
     def getCertsForAddr(self, addr):
         chain = []
         chain.append(self.getContent(self._path_prefix + 'bb8.cert'))
+        chain.append(self.getRootCert())
         return chain
 
     def getRootCert(self):
@@ -40,3 +48,12 @@ class CertFactory(object):
             raise ValueError('No Content!')
         else:
             return content
+
+    def GetCommonName(self, certBytes):
+        cert = CipherUtil.getCertFromBytes(certBytes)
+        commonNameList = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+        if len(commonNameList) != 1:
+            return None
+        commonNameAttr = commonNameList[0]
+        return commonNameAttr.value
+

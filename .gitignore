@@ -1,5 +1,7 @@
 .idea/
 venv/
+.DS_Store
+*.
 *.pid
 *.pid.lock
 *.status
