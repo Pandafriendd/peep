@@ -1,1 +1,0 @@
-This directory is built for homework submission.
