@@ -3,7 +3,7 @@ import random, hashlib
 from playground.network.common import StackingProtocol
 from playground.common import CipherUtil
 
-from ...playgroundpackets.PLSPacket import PLSPacket, PlsHello, PlsKeyExchange, PlsHandshakeDone, PlsData, PlsClose
+from ..packets.PLSPacket import PLSPacket, PlsHello, PlsKeyExchange, PlsHandshakeDone, PlsData, PlsClose
 from ..factory.CertFactory import CertFactory
 from ..transport.PLSTransport import PLSTransport
 from ..utils.CryptoUtil import CryptoUtil
@@ -11,19 +11,18 @@ from ..utils.CryptoUtil import CryptoUtil
 
 class PLSP(StackingProtocol):
 
-    def __init__(self, address):
+    def __init__(self):
         super(PLSP, self).__init__()
         # variables for transport
         self.transport = None
         self._deserializer = PLSPacket.Deserializer()
         # cert factory and cert vars
-        self.cf = CertFactory()
-        self._private_key = self.cf.getPrivateKeyForAddr(address)
+        self._private_key = None
         self._public_key = None
         self._pubk_for_other_side = None
         self._pre_key = None
         self._pre_key_for_other_side = None
-        self._certs = self.cf.getCertsForAddr(address)
+        self._certs = []
         self._certs_for_other_side = []
         # vars for handshake
         self._nonce = None
@@ -34,8 +33,10 @@ class PLSP(StackingProtocol):
         # engines for data transmission
         self._encryption_engine = None
         self._decryption_engine = None
-        self._MAC_engine = None
-        self._verification_engine = None
+        self._MAC_engine_key = None
+        self._verification_engine_key = None
+        # self._MAC_engine = None
+        # self._verification_engine = None
 
 
     def data_received(self, data):
@@ -44,8 +45,9 @@ class PLSP(StackingProtocol):
             if isinstance(packet, PlsData):
                 cipher_text = packet.Ciphertext
                 verification_code = packet.Mac
-                self._verification_engine.update(cipher_text)
-                if self._verification_engine.digest() == verification_code:
+                verification_engine = CryptoUtil.HMACEngine(self._verification_engine_key)
+                verification_engine.update(cipher_text)
+                if verification_engine.digest() == verification_code:
                     plain_text = self._decryption_engine.decrypt(cipher_text)
                     self.higherProtocol().data_received(plain_text)
                 else:
@@ -60,7 +62,7 @@ class PLSP(StackingProtocol):
                 '''
                 self._certs_for_other_side = list(packet.Certs)
                 self._nonce_for_other_side = packet.Nonce
-                self._pubk_for_other_side = self.cf.getPubkFromCert(packet.Certs[0])
+                self._pubk_for_other_side = CertFactory.getPubkFromCert(packet.Certs[0])
                 self._messages_for_handshake.append(packet.__serialize__())
 
                 '''
@@ -70,9 +72,12 @@ class PLSP(StackingProtocol):
                 for cert_for_other_side in self._certs_for_other_side:
                     tmp_cert_list.append(CipherUtil.getCertFromBytes(cert_for_other_side))
                 peer_name = self.transport.get_extra_info("peername")[0]
-                common_name = self.cf.GetCommonName(packet.Certs[0])
+                common_name = CertFactory.GetCommonName(packet.Certs[0])
 
-                if str(peer_name).startswith(common_name) and CipherUtil.ValidateCertChainSigs(tmp_cert_list) and packet.Certs[-1] == self.cf.getRootCert():
+                root = CipherUtil.getCertFromBytes(CertFactory.getRootCert())
+                issuer = CipherUtil.RSA_SIGNATURE_MAC(root.public_key())
+
+                if str(peer_name).startswith(common_name) and CipherUtil.ValidateCertChainSigs(tmp_cert_list) and (packet.Certs[-1] == CertFactory.getRootCert() or issuer.verify(packet.Certs[-1], root.signature)):
                     if self._state == 0:
                         # start to send plshello
                         self._nonce = random.randint(0, 2 ** 64)
@@ -82,7 +87,7 @@ class PLSP(StackingProtocol):
                         self._state = 2
                         self._messages_for_handshake.append(pls_hello_bytes)
                     elif self._state == 1:
-                        self._pre_key = self.cf.getPreKey()
+                        self._pre_key = CertFactory.getPreKey()
                         pls_key_exchange = PlsKeyExchange(PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key), NoncePlusOne=self._nonce_for_other_side + 1)
                         pls_key_exchange_bytes = pls_key_exchange.__serialize__()
                         self.transport.write(pls_key_exchange_bytes)
@@ -100,7 +105,7 @@ class PLSP(StackingProtocol):
                     self._pre_key_for_other_side = CryptoUtil.RSADecrypt(self._private_key, packet.PreKey)
                     self._messages_for_handshake.append(packet.__serialize__())
                     if self._state == 2:
-                        self._pre_key = self.cf.getPreKey()
+                        self._pre_key = CertFactory.getPreKey()
                         pls_key_exchange = PlsKeyExchange(
                             PreKey=CryptoUtil.RSAEncrypt(self._pubk_for_other_side, self._pre_key),
                             NoncePlusOne=self._nonce_for_other_side + 1)
@@ -162,17 +167,19 @@ class PLSP(StackingProtocol):
                 print('PLSP is waiting for a PLS packet.')
 
     def set_symmetric_variables(self, is_client):
-        self._public_key = self.cf.getPubkFromCert(self._certs[0])
+        self._public_key = CertFactory.getPubkFromCert(self._certs[0])
         nonce_comb = None
-        pubk_comb = None
+        prek_comb = None
         if is_client:
             nonce_comb = self._nonce.to_bytes(8, byteorder='big') + self._nonce_for_other_side.to_bytes(8, byteorder='big')
-            pubk_comb = self._public_key + self._pubk_for_other_side
+            # pubk_comb = self._public_key + self._pubk_for_other_side
+            prek_comb = self._pre_key + self._pre_key_for_other_side
         else:
             nonce_comb = self._nonce_for_other_side.to_bytes(8, byteorder='big') + self._nonce.to_bytes(8, byteorder='big')
-            pubk_comb = self._pubk_for_other_side + self._public_key
+            # pubk_comb = self._pubk_for_other_side + self._public_key
+            prek_comb = self._pre_key_for_other_side + self._pre_key
 
-        seed = b'PLS1.0' + nonce_comb + pubk_comb
+        seed = b'PLS1.0' + nonce_comb + prek_comb
 
         block_0 = hashlib.sha1(seed).digest()
         block_1 = hashlib.sha1(block_0).digest()
@@ -185,18 +192,23 @@ class PLSP(StackingProtocol):
         if is_client:
             self._encryption_engine = CryptoUtil.AESCryptoEngine(block[:16], block[32:48])
             self._decryption_engine = CryptoUtil.AESCryptoEngine(block[16:32], block[48:64])
-            self._MAC_engine = CryptoUtil.HMACEngine(block[64:80])
-            self._verification_engine = CryptoUtil.HMACEngine(block[80:96])
+            # self._MAC_engine = CryptoUtil.HMACEngine(block[64:80])
+            self._MAC_engine_key = block[64:80]
+            # self._verification_engine = CryptoUtil.HMACEngine(block[80:96])
+            self._verification_engine_key = block[80:96]
         else:
             self._encryption_engine = CryptoUtil.AESCryptoEngine(block[16:32], block[48:64])
             self._decryption_engine = CryptoUtil.AESCryptoEngine(block[:16], block[32:48])
-            self._MAC_engine = CryptoUtil.HMACEngine(block[80:96])
-            self._verification_engine = CryptoUtil.HMACEngine(block[64:80])
+            # self._MAC_engine = CryptoUtil.HMACEngine(block[80:96])
+            self._MAC_engine_key = block[80:96]
+            self._verification_engine_key = block[64:80]            
+            # self._verification_engine = CryptoUtil.HMACEngine(block[64:80])
 
     def process_data(self, data):
         cipher_text = self._encryption_engine.encrypt(data)
-        self._MAC_engine.update(cipher_text)
-        verification_code = self._MAC_engine.digest()
+        mac_engine = CryptoUtil.HMACEngine(self._MAC_engine_key)
+        mac_engine.update(cipher_text)
+        verification_code = mac_engine.digest()
         pls_data = PlsData(Ciphertext=cipher_text, Mac=verification_code)
         self.transport.write(pls_data.__serialize__())
 

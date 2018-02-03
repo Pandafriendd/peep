@@ -7,49 +7,52 @@ from cryptography.x509.oid import NameOID
 
 from playground.common import CipherUtil
 
+from ..contants import PATH_PREFIX
+
 
 class CertFactory(object):
 
     def __init__(self):
         super(CertFactory, self).__init__()
-        self._path_prefix = '/Users/qiyanggu/Documents/keys/netsec/'
-        # self._path_prefix = '/Users/ming/Desktop/netsec_keys/'
-        # self._path_prefix = '/home/team6/ming/keys/'
 
-    def getPrivateKeyForAddr(self, addr):
-        return self.getContent(self._path_prefix + 'bb8_prik.pem')
+    @classmethod
+    def getPrivateKeyForAddr(cls, addr):
+        return cls.getContent(PATH_PREFIX + 'r2d2.pem')
 
-    def getCertsForAddr(self, addr):
+    @classmethod
+    def getCertsForAddr(cls, addr):
         chain = []
-        chain.append(self.getContent(self._path_prefix + 'bb8.cert'))
-        chain.append(self.getRootCert())
+        chain.append(cls.getContent(PATH_PREFIX + 'r2d2.crt'))
+        chain.append(cls.getContent(PATH_PREFIX + 'bb8.crt'))
+        chain.append(cls.getRootCert())
         return chain
 
-    def getRootCert(self):
-        return self.getContent(self._path_prefix + 'root.crt')
+    @classmethod
+    def getRootCert(cls):
+        return cls.getContent(PATH_PREFIX + 'root.crt')
 
-    def getPublicKeyForAddr(self, addr):
-        return self.getContent((self._path_prefix + 'bb8_pubk.pem'))
-
-    def getPreKey(self):
+    @classmethod
+    def getPreKey(cls):
         seed = random.randint(0, 2 ** 64).to_bytes(8, byteorder='big')
         return hashlib.sha1(seed).digest()[:16]
 
-    def getPubkFromCert(self, cert):
+    @classmethod
+    def getPubkFromCert(cls, cert):
         cert_object = x509.load_pem_x509_certificate(cert, default_backend())
         return cert_object.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
 
-    @staticmethod
-    def getContent(addr):
+    @classmethod
+    def getContent(cls, path):
         content = b''
-        with open(addr, 'rb') as fp:
+        with open(path, 'rb') as fp:
             content = fp.read()
         if len(content) == 0:
             raise ValueError('No Content!')
         else:
             return content
-
-    def GetCommonName(self, certBytes):
+    
+    @classmethod
+    def GetCommonName(cls, certBytes):
         cert = CipherUtil.getCertFromBytes(certBytes)
         commonNameList = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
         if len(commonNameList) != 1:

@@ -1,14 +1,18 @@
 import random
 from .PLSP import PLSP
-from ...playgroundpackets.PLSPacket import PlsHello
+from ..packets.PLSPacket import PlsHello
+from ..factory.CertFactory import CertFactory
 
 
 class PLSPClient(PLSP):
 
     def __init__(self):
-        super(PLSPClient, self).__init__('20174.1.9596.2')
+        super(PLSPClient, self).__init__()
 
     def connection_made(self, transport):
+        address, port = transport.get_extra_info("sockname")
+        self._private_key = CertFactory.getPrivateKeyForAddr(address)
+        self._certs = CertFactory.getCertsForAddr(address)
         self.transport = transport
         # start to handshake
         self._nonce = random.randint(0, 2**64)
