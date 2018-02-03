@@ -11,7 +11,7 @@ PEEP is a TCP-like protocol for [Playground](https://github.com/CrimsonVista/Pla
    If there is only one version of Python in your machine and the Python version is already 3.0+, use pip instead.  
 
 2. **Clone the repo:**  
- `git clone git@github.com:princessV/lab-for-netsec.git`
+ `git clone git@github.com:princessV/peep.git`
 
 3. **Install playground dependencies in a virtual environment:**  
     `cd peep`
