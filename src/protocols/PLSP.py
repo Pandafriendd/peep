@@ -33,10 +33,8 @@ class PLSP(StackingProtocol):
         # engines for data transmission
         self._encryption_engine = None
         self._decryption_engine = None
-        self._MAC_engine_key = None
-        self._verification_engine_key = None
-        # self._MAC_engine = None
-        # self._verification_engine = None
+        self._MAC_engine = None
+        self._verification_engine = None
 
 
     def data_received(self, data):
@@ -45,14 +43,13 @@ class PLSP(StackingProtocol):
             if isinstance(packet, PlsData):
                 cipher_text = packet.Ciphertext
                 verification_code = packet.Mac
-                verification_engine = CryptoUtil.HMACEngine(self._verification_engine_key)
-                verification_engine.update(cipher_text)
-                if verification_engine.digest() == verification_code:
+
+                if self._verification_engine.verifyMac(cipher_text, verification_code):
                     plain_text = self._decryption_engine.decrypt(cipher_text)
                     self.higherProtocol().data_received(plain_text)
                 else:
-                    # pass
                     self.terminate_connection("validation error")
+
             elif isinstance(packet, PlsHello):
                 '''
                 1. store certs from the other side (?)
@@ -190,25 +187,27 @@ class PLSP(StackingProtocol):
         block = block_0 + block_1 + block_2 + block_3 + block_4
 
         if is_client:
-            self._encryption_engine = CryptoUtil.AESCryptoEngine(block[:16], block[32:48])
-            self._decryption_engine = CryptoUtil.AESCryptoEngine(block[16:32], block[48:64])
-            # self._MAC_engine = CryptoUtil.HMACEngine(block[64:80])
-            self._MAC_engine_key = block[64:80]
-            # self._verification_engine = CryptoUtil.HMACEngine(block[80:96])
-            self._verification_engine_key = block[80:96]
+            self._encryption_engine = CryptoUtil.AESEngine(block[:16], block[32:48])
+            self._decryption_engine = CryptoUtil.AESEngine(block[16:32], block[48:64])
+
+            # self._MAC_engine_key = block[64:80]
+            # self._verification_engine_key = block[80:96]
+
+            self._MAC_engine = CryptoUtil.HMACEngine(block[64:80])
+            self._verification_engine = CryptoUtil.HMACEngine(block[80:96])
         else:
-            self._encryption_engine = CryptoUtil.AESCryptoEngine(block[16:32], block[48:64])
-            self._decryption_engine = CryptoUtil.AESCryptoEngine(block[:16], block[32:48])
-            # self._MAC_engine = CryptoUtil.HMACEngine(block[80:96])
-            self._MAC_engine_key = block[80:96]
-            self._verification_engine_key = block[64:80]            
-            # self._verification_engine = CryptoUtil.HMACEngine(block[64:80])
+            self._encryption_engine = CryptoUtil.AESEngine(block[16:32], block[48:64])
+            self._decryption_engine = CryptoUtil.AESEngine(block[:16], block[32:48])
+
+            # self._MAC_engine_key = block[80:96]
+            # self._verification_engine_key = block[64:80]
+
+            self._MAC_engine = CryptoUtil.HMACEngine(block[80:96])
+            self._verification_engine = CryptoUtil.HMACEngine(block[64:80])
 
     def process_data(self, data):
         cipher_text = self._encryption_engine.encrypt(data)
-        mac_engine = CryptoUtil.HMACEngine(self._MAC_engine_key)
-        mac_engine.update(cipher_text)
-        verification_code = mac_engine.digest()
+        verification_code = self._MAC_engine.mac(cipher_text)
         pls_data = PlsData(Ciphertext=cipher_text, Mac=verification_code)
         self.transport.write(pls_data.__serialize__())
 

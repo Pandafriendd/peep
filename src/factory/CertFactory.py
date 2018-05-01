@@ -2,7 +2,7 @@ import random, hashlib
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from cryptography.hazmat.primitives import serialization
 from cryptography.x509.oid import NameOID
 
 from playground.common import CipherUtil
@@ -17,7 +17,8 @@ class CertFactory(object):
 
     @classmethod
     def getPrivateKeyForAddr(cls, addr):
-        return cls.getContent(PATH_PREFIX + 'r2d2.pem')
+        pem_data = cls.getContent(PATH_PREFIX + 'r2d2.pem')
+        return serialization.load_pem_private_key(pem_data, password=None, backend=default_backend())
 
     @classmethod
     def getCertsForAddr(cls, addr):
@@ -39,7 +40,8 @@ class CertFactory(object):
     @classmethod
     def getPubkFromCert(cls, cert):
         cert_object = x509.load_pem_x509_certificate(cert, default_backend())
-        return cert_object.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+        # return cert_object.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+        return cert_object.public_key()
 
     @classmethod
     def getContent(cls, path):

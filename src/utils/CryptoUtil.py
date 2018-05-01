@@ -1,10 +1,34 @@
-# import base64
-# from Crypto import Random
-# from Crypto.Cipher import PKCS1_v1_5 as Cipher_pkcs1_v1_5, AES
-from Crypto.Cipher import PKCS1_OAEP, AES
-from Crypto.Hash import HMAC, SHA
-from Crypto.PublicKey import RSA
-from Crypto.Util import Counter
+import hmac
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+
+class AESEngine:
+    def __init__(self, key, IV):
+        cipher = Cipher(algorithms.AES(key), modes.CTR(IV), backend=default_backend())
+        self.encryptor = cipher.encryptor()
+        self.decryptor = cipher.decryptor()
+
+    def encrypt(self, data):
+        return self.encryptor.update(data)
+
+    def decrypt(self, data):
+        return self.decryptor.update(data)
+
+class HMACEngine:
+    def __init__(self, key):
+        self.__key = key
+
+    def mac(self, data):
+        mac = hmac.new(self.__key, digestmod="sha1")
+        mac.update(data)
+        return mac.digest()
+
+    def verifyMac(self, data, verification_code):
+        mac = self.mac(data)
+        return mac == verification_code
 
 
 class CryptoUtil(object):
@@ -13,28 +37,36 @@ class CryptoUtil(object):
         super(CryptoUtil, self).__init__()
 
     @classmethod
-    def RSAEncrypt(cls, key, plain_text):
-        rsa_key = RSA.importKey(key)
-        # cipher = Cipher_pkcs1_v1_5.new(rsa_key)
-        cipher = PKCS1_OAEP.new(rsa_key)
-        # cipher_text = base64.b64encode(cipher.encrypt(plain_text))
-        cipher_text = cipher.encrypt(plain_text)
+    def RSAEncrypt(cls, pubk, plain_text):
+        cipher_text = pubk.encrypt(
+            plain_text,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA1(),
+                label=None
+            )
+        )
         return cipher_text
 
     @classmethod
-    def RSADecrypt(cls, key, cipher_text):
-        # random_generator = Random.new().read
-        rsa_key = RSA.importKey(key)
-        cipher = PKCS1_OAEP.new(rsa_key)
-        # plain_text = cipher.decrypt(base64.b64decode(cipher_text), random_generator)
-        plain_text = cipher.decrypt(cipher_text)
+    def RSADecrypt(cls, prik, cipher_text):
+        plain_text = prik.decrypt(
+            cipher_text,
+            padding.OAEP(
+                mgf = padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm = hashes.SHA1(),
+                label = None
+            )
+        )
         return plain_text
 
     @classmethod
-    def AESCryptoEngine(cls, key, IV):
-        IV_asCtr = Counter.new(128, initial_value=int.from_bytes(IV, byteorder='big'))
-        return AES.new(key, counter=IV_asCtr, mode=AES.MODE_CTR)
+    def AESEngine(cls, key, IV):
+        # IV_asCtr = Counter.new(128, initial_value=int.from_bytes(IV, byteorder='big'))
+        # return AES.new(key, counter=IV_asCtr, mode=AES.MODE_CTR)
+        return AESEngine(key, IV)
 
     @classmethod
     def HMACEngine(self, key):
-        return HMAC.new(key, digestmod=SHA)
+        # return HMAC.new(key, digestmod=SHA)
+        return HMACEngine(key)
